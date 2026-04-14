@@ -6,64 +6,65 @@ A fully parameterised, responsive HTML block for Bloomreach Engagement email cam
 
 1. In Bloomreach Engagement, create a new **HTML Block** (Data & Assets → Asset Manager → Blocks → New Block).
 2. Open the code editor and paste the contents of [`bloomreach-product-block.html`](bloomreach-product-block.html).
-3. Click **"Load parameters from code editor"** — all parameters will be detected automatically.
-4. Set the **type** and **default value** for each parameter as documented below (the defaults in the code already match the Jellycat-style reference design).
+3. Click **"Load parameters from code editor"** — all `params.*` references will be detected automatically.
+4. For each parameter, set the **type** and **default value** as documented in the table below (and in the comment block at the top of the HTML file).
 5. Save the block and insert it into any email campaign via the asset picker or as a Jinja reference.
 
 ## Features
 
-- **Recommendation-driven** — queries any Bloomreach recommendation model via a selectable `recommendation` parameter.
-- **Flexible grid** — control total product count and products-per-row from the parameters UI.
-- **Fully inline styles** — every CSS value is driven by a parameter (colours, spacing, typography, border radii, etc.), so non-technical users can restyle the block without touching code.
-- **Email-client compatible** — uses nested `<table>` layout with MSO conditional comments for Outlook support.
+- **Recommendation-driven** — queries any Bloomreach recommendation model via a `recommendation` type parameter.
+- **Flexible grid** — control total product count and products-per-row; uses Jinja `|batch()` to split products into rows automatically.
+- **Fully inline styles** — every CSS value is driven by a `params.*` reference so non-technical users can restyle the block without touching code.
+- **Email-client compatible** — uses nested `<table>` layout with MSO conditional comments and VML roundrect for Outlook button support.
+- **Mobile responsive** — CSS `@media` query stacks columns to full width on screens ≤ 620px.
 - **Optional price display** — toggle price on/off with a boolean parameter.
 - **Optional CTA button** — toggle visibility, label, URL, colours, shape, and spacing.
 
 ## Parameters reference
 
-| Parameter | Type | Default | Category | Description |
-|---|---|---|---|---|
-| `recoModel` | recommendation | `699f134bffe1f2b21aff1773` | Data | Recommendation model to query |
-| `totalProducts` | number | `4` | Data | Total products to display |
-| `productsPerRow` | number | `2` | Data | Products per row |
-| `blockBgColor` | color | `#ffffff` | Container | Block background colour |
-| `blockPaddingTop` | number | `20` | Container | Top padding (px) |
-| `blockPaddingBottom` | number | `20` | Container | Bottom padding (px) |
-| `blockPaddingLeft` | number | `10` | Container | Left padding (px) |
-| `blockPaddingRight` | number | `10` | Container | Right padding (px) |
-| `blockMaxWidth` | number | `600` | Container | Max content width (px) |
-| `cardBgColor` | color | `#f2ece6` | Product Card | Card background colour |
-| `cardBorderRadius` | number | `12` | Product Card | Card corner radius (px) |
-| `cardPadding` | number | `15` | Product Card | Card inner padding (px) |
-| `cardGap` | number | `10` | Product Card | Gap between cards (px) |
-| `imageBorderRadius` | number | `8` | Product Image | Image corner radius (px) |
-| `imageMaxHeight` | number | `0` | Product Image | Max image height (px, 0 = none) |
-| `titleFontFamily` | string | `Arial, Helvetica, sans-serif` | Typography | Product title font |
-| `titleFontSize` | number | `13` | Typography | Title font size (px) |
-| `titleFontWeight` | enum | `normal` | Typography | Title font weight |
-| `titleColor` | color | `#333333` | Typography | Title text colour |
-| `titleAlign` | enum | `center` | Typography | Title text alignment |
-| `titlePaddingTop` | number | `10` | Typography | Space above title (px) |
-| `titleLineHeight` | string | `1.4` | Typography | Title line height |
-| `showPrice` | boolean | `false` | Price | Show price below title |
-| `priceFontSize` | number | `13` | Price | Price font size (px) |
-| `priceColor` | color | `#333333` | Price | Price text colour |
-| `priceFontWeight` | enum | `bold` | Price | Price font weight |
-| `pricePrefix` | string | `£` | Price | Currency prefix |
-| `showCta` | boolean | `true` | CTA Button | Show CTA button |
-| `ctaText` | string | `Get reunited` | CTA Button | Button label |
-| `ctaUrl` | string | `https://jellycat.com` | CTA Button | Button link URL |
-| `ctaBgColor` | color | `#e24740` | CTA Button | Button background colour |
-| `ctaTextColor` | color | `#ffffff` | CTA Button | Button text colour |
-| `ctaFontSize` | number | `14` | CTA Button | Button font size (px) |
-| `ctaFontFamily` | string | `Arial, Helvetica, sans-serif` | CTA Button | Button font |
-| `ctaFontWeight` | enum | `bold` | CTA Button | Button font weight |
-| `ctaBorderRadius` | number | `20` | CTA Button | Button corner radius (px) |
-| `ctaPaddingV` | number | `10` | CTA Button | Button vertical padding (px) |
-| `ctaPaddingH` | number | `30` | CTA Button | Button horizontal padding (px) |
-| `ctaTopMargin` | number | `20` | CTA Button | Space above button (px) |
-| `ctaBorderColor` | color | `#e24740` | CTA Button | Button border colour |
-| `ctaBorderWidth` | number | `1` | CTA Button | Button border width (px) |
+After clicking "Load parameters from code editor", set the following types and defaults:
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `recommendationID` | recommendation | `699f134bffe1f2b21aff1773` | Recommendation model to query |
+| `productsCount` | number | `4` | Total products to display |
+| `numberOfColumns` | number | `2` | Products per row |
+| `backgroundColor` | color | `#ffffff` | Block background colour |
+| `blockPaddingTop` | number | `20` | Top padding (px) |
+| `blockPaddingBottom` | number | `20` | Bottom padding (px) |
+| `blockPaddingLeft` | number | `10` | Left padding (px) |
+| `blockPaddingRight` | number | `10` | Right padding (px) |
+| `blockMaxWidth` | number | `600` | Max content width (px) |
+| `cardBgColor` | color | `#f2ece6` | Card background colour |
+| `cardBorderRadius` | number | `12` | Card corner radius (px) |
+| `cardPadding` | number | `15` | Card inner padding (px) |
+| `cardGap` | number | `10` | Gap between cards (px) |
+| `imageBorderRadius` | number | `8` | Image corner radius (px) |
+| `imageWidth` | number | `200` | Image width (px) |
+| `baseFont` | string | `Arial` | Base font family |
+| `titleFontSize` | string | `13px` | Title font size |
+| `titleFontWeight` | string | `normal` | Title font weight |
+| `titleColor` | color | `#333333` | Title text colour |
+| `titleAlign` | string | `center` | Title text alignment |
+| `titleLineHeight` | string | `1.4` | Title line height |
+| `showPrice` | boolean | `false` | Show price below title |
+| `priceFontSize` | string | `13px` | Price font size |
+| `priceFontWeight` | string | `bold` | Price font weight |
+| `priceColor` | color | `#333333` | Price text colour |
+| `priceCurrency` | string | `£` | Currency symbol |
+| `showCta` | boolean | `true` | Show CTA button |
+| `ctaText` | string | `Get reunited` | Button label |
+| `ctaUrl` | string | `https://jellycat.com` | Button link URL |
+| `ctaBgColor` | color | `#e24740` | Button background colour |
+| `ctaTextColor` | color | `#ffffff` | Button text colour |
+| `ctaFontSize` | string | `14px` | Button font size |
+| `ctaFontWeight` | string | `bold` | Button font weight |
+| `ctaBorderRadius` | string | `20px` | Button corner radius |
+| `ctaBorderColor` | color | `#e24740` | Button border colour |
+| `ctaBorderWidth` | string | `1px` | Button border width |
+| `ctaPaddingV` | number | `10` | Button vertical padding (px) |
+| `ctaPaddingH` | number | `30` | Button horizontal padding (px) |
+| `ctaTopMargin` | number | `20` | Space above button (px) |
 
 ## Product catalog fields used
 
@@ -83,5 +84,5 @@ The block reads these fields from each recommended product:
 {{ block('<block-id>') }}
 
 {# With parameter overrides: #}
-{{ block('<block-id>', {'recoModel': '...', 'totalProducts': 6, 'productsPerRow': 3}) }}
+{{ block('<block-id>', {'recommendationID': '...', 'productsCount': 6, 'numberOfColumns': 3}) }}
 ```
