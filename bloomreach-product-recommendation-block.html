@@ -1,0 +1,220 @@
+{# ================================================================
+   BLOOMREACH ENGAGEMENT - DYNAMIC PRODUCT RECOMMENDATION BLOCK
+
+   Paste this code into an HTML Block editor in Bloomreach
+   Engagement, then click "Load parameters from the code editor"
+   to import all customizable parameters.
+
+   Target catalog: bigcommerce product
+   ================================================================ #}
+
+{# ===================== RECOMMENDATION ========================== #}
+{% set total_products = [[ totalProducts : number | 2 ]] %}
+{% set fill_random = [[ fillWithRandom : boolean | true ]] %}
+
+{# ===================== LAYOUT ================================== #}
+{% set container_width = [[ containerWidth : number | 600 ]] %}
+{% set products_per_row = [[ productsPerRow : number | 2 ]] %}
+{% set stack_on_mobile = [[ stackOnMobile : boolean | true ]] %}
+{% set mobile_breakpoint = [[ mobileBreakpoint : number | 480 ]] %}
+
+{# ===================== CONTAINER ================================ #}
+{% set container_bg = '[[ containerBgColor : color | #ffffff ]]' %}
+{% set container_pt = [[ containerPaddingTop : number | 20 ]] %}
+{% set container_pb = [[ containerPaddingBottom : number | 20 ]] %}
+{% set container_ph = [[ containerPaddingHorizontal : number | 10 ]] %}
+
+{# ===================== PRODUCT CARD ============================= #}
+{% set card_bg = '[[ cardBgColor : color | #ffffff ]]' %}
+{% set card_gap = [[ cardGap : number | 16 ]] %}
+{% set card_border_radius = [[ cardBorderRadius : number | 0 ]] %}
+{% set card_border_width = [[ cardBorderWidth : number | 0 ]] %}
+{% set card_border_color = '[[ cardBorderColor : color | #dddddd ]]' %}
+{% set card_padding = [[ cardPadding : number | 0 ]] %}
+{% set card_vertical_align = '[[ cardVerticalAlign : enum(top, middle, bottom) | top ]]' %}
+
+{# ===================== PRODUCT IMAGE ============================ #}
+{% set img_bg = '[[ imageBgColor : color | #F0EBE3 ]]' %}
+{% set img_border_radius = [[ imageBorderRadius : number | 8 ]] %}
+{% set img_padding = [[ imagePadding : number | 15 ]] %}
+{% set img_height = [[ imageHeight : number | 200 ]] %}
+
+{# ===================== PRODUCT NAME ============================= #}
+{% set name_font = '[[ nameFontFamily : string | Arial, sans-serif ]]' %}
+{% set name_size = [[ nameFontSize : number | 13 ]] %}
+{% set name_color = '[[ nameColor : color | #333333 ]]' %}
+{% set name_align = '[[ nameTextAlign : enum(left, center, right) | center ]]' %}
+{% set name_weight = '[[ nameFontWeight : enum(normal, bold, 300, 400, 500, 600, 700) | normal ]]' %}
+{% set name_lh = [[ nameLineHeight : number | 18 ]] %}
+{% set name_pt = [[ namePaddingTop : number | 12 ]] %}
+{% set name_decoration = '[[ nameTextDecoration : enum(none, underline) | none ]]' %}
+
+{# ===================== PRICE ==================================== #}
+{% set show_price = [[ showPrice : boolean | false ]] %}
+{% set price_color = '[[ priceColor : color | #333333 ]]' %}
+{% set price_size = [[ priceFontSize : number | 14 ]] %}
+{% set price_font = '[[ priceFontFamily : string | Arial, sans-serif ]]' %}
+{% set price_weight = '[[ priceFontWeight : enum(normal, bold) | bold ]]' %}
+{% set price_symbol = '[[ priceCurrencySymbol : string | £ ]]' %}
+{% set price_pt = [[ pricePaddingTop : number | 4 ]] %}
+
+{# ===================== CTA BUTTON =============================== #}
+{% set show_cta = [[ showCta : boolean | true ]] %}
+{% set cta_text = '[[ ctaText : string | Get reunited ]]' %}
+{% set cta_url = '[[ ctaUrl : string | https://jellycat.com ]]' %}
+{% set cta_bg = '[[ ctaBgColor : color | #ffffff ]]' %}
+{% set cta_color = '[[ ctaTextColor : color | #cc3333 ]]' %}
+{% set cta_border_color = '[[ ctaBorderColor : color | #cc3333 ]]' %}
+{% set cta_border_width = [[ ctaBorderWidth : number | 1 ]] %}
+{% set cta_border_radius = [[ ctaBorderRadius : number | 25 ]] %}
+{% set cta_font = '[[ ctaFontFamily : string | Arial, sans-serif ]]' %}
+{% set cta_size = [[ ctaFontSize : number | 14 ]] %}
+{% set cta_weight = '[[ ctaFontWeight : enum(normal, bold) | normal ]]' %}
+{% set cta_pv = [[ ctaPaddingVertical : number | 10 ]] %}
+{% set cta_ph = [[ ctaPaddingHorizontal : number | 30 ]] %}
+{% set cta_mt = [[ ctaMarginTop : number | 20 ]] %}
+{% set cta_letter_spacing = [[ ctaLetterSpacing : number | 0 ]] %}
+{% set cta_text_transform = '[[ ctaTextTransform : enum(none, uppercase, lowercase, capitalize) | none ]]' %}
+
+{# ===================== COMPUTED VALUES ========================== #}
+{% set content_width = container_width - 2 * container_ph %}
+{% set card_w = ((content_width - (products_per_row - 1) * card_gap) / products_per_row)|int %}
+{% set img_display_w = card_w - 2 * card_padding - 2 * img_padding %}
+{% set img_display_h = img_height - 2 * img_padding %}
+{% set colspan_total = 2 * products_per_row - 1 %}
+
+{# ===================== FETCH PRODUCTS =========================== #}
+{% set products = recommendations('[[ recommendationModel : recommendation | 699f134bffe1f2b21aff1773 ]]', size=total_products, fill_with_random=fill_random) %}
+
+{% if products | length > 0 %}
+
+<style type="text/css">
+  @media only screen and (max-width: {{ mobile_breakpoint }}px) {
+    .pb-outer { width: 100% !important; max-width: 100% !important; }
+    {% if stack_on_mobile %}
+    .pb-card {
+      display: block !important;
+      width: 100% !important;
+      box-sizing: border-box !important;
+      padding-bottom: {{ card_gap }}px !important;
+    }
+    .pb-gap {
+      display: none !important;
+      width: 0 !important;
+      max-height: 0 !important;
+      overflow: hidden !important;
+      mso-hide: all !important;
+    }
+    .pb-row {
+      display: block !important;
+      width: 100% !important;
+    }
+    .pb-cta-cell {
+      display: block !important;
+      width: 100% !important;
+    }
+    .pb-img {
+      width: 100% !important;
+      height: auto !important;
+    }
+    {% endif %}
+  }
+</style>
+
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+  <tr>
+    <td align="center" style="background-color: {{ container_bg }};">
+      <!--[if mso]>
+      <table role="presentation" width="{{ container_width }}" cellpadding="0" cellspacing="0" border="0" align="center"><tr><td>
+      <![endif]-->
+      <div style="max-width: {{ container_width }}px; margin: 0 auto;">
+        <table role="presentation" class="pb-outer" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width: {{ container_width }}px;">
+          <tr>
+            <td style="padding: {{ container_pt }}px {{ container_ph }}px {{ container_pb }}px {{ container_ph }}px;">
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+
+                {% for item in products %}
+
+                {% if loop.index0 % products_per_row == 0 %}
+                <tr class="pb-row">
+                {% endif %}
+
+                {% if loop.index0 % products_per_row > 0 %}
+                <td class="pb-gap" width="{{ card_gap }}" style="width: {{ card_gap }}px; font-size: 0; line-height: 0;">&nbsp;</td>
+                {% endif %}
+
+                <td class="pb-card" width="{{ card_w }}" valign="{{ card_vertical_align }}" style="width: {{ card_w }}px; background-color: {{ card_bg }}; border-radius: {{ card_border_radius }}px;{% if card_border_width > 0 %} border: {{ card_border_width }}px solid {{ card_border_color }};{% endif %} padding: {{ card_padding }}px;">
+
+                  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+                    <tr>
+                      <td align="center" valign="middle" height="{{ img_height }}" style="height: {{ img_height }}px; background-color: {{ img_bg }}; border-radius: {{ img_border_radius }}px; padding: {{ img_padding }}px;">
+                        <a href="{{ item.url }}" style="text-decoration: none; border: 0;">
+                          <img src="{{ item.image }}" alt="{{ item.title }}" width="{{ img_display_w }}" class="pb-img" style="display: block; margin: 0 auto; max-width: 100%; height: auto; max-height: {{ img_display_h }}px; border: 0; outline: none;" />
+                        </a>
+                      </td>
+                    </tr>
+                  </table>
+
+                  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+                    <tr>
+                      <td align="{{ name_align }}" style="padding: {{ name_pt }}px {{ card_padding }}px 0 {{ card_padding }}px;">
+                        <a href="{{ item.url }}" style="color: {{ name_color }}; font-family: {{ name_font }}; font-size: {{ name_size }}px; font-weight: {{ name_weight }}; line-height: {{ name_lh }}px; text-decoration: {{ name_decoration }};">{{ item.title }}</a>
+                      </td>
+                    </tr>
+                  </table>
+
+                  {% if show_price %}
+                  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+                    <tr>
+                      <td align="{{ name_align }}" style="padding: {{ price_pt }}px {{ card_padding }}px 0 {{ card_padding }}px; font-family: {{ price_font }}; font-size: {{ price_size }}px; color: {{ price_color }}; font-weight: {{ price_weight }}; line-height: {{ price_size + 4 }}px;">
+                        {{ price_symbol }}{{ item.price }}
+                      </td>
+                    </tr>
+                  </table>
+                  {% endif %}
+
+                </td>
+
+                {% if loop.last and loop.index0 % products_per_row != products_per_row - 1 %}
+                {% for _pad in range(products_per_row - 1 - loop.index0 % products_per_row) %}
+                <td class="pb-gap" width="{{ card_gap }}" style="width: {{ card_gap }}px;">&nbsp;</td>
+                <td class="pb-card" width="{{ card_w }}" style="width: {{ card_w }}px;">&nbsp;</td>
+                {% endfor %}
+                {% endif %}
+
+                {% if loop.index0 % products_per_row == products_per_row - 1 or loop.last %}
+                </tr>
+                {% if not loop.last %}
+                <tr class="pb-gap"><td colspan="{{ colspan_total }}" style="height: {{ card_gap }}px; font-size: 0; line-height: 0;">&nbsp;</td></tr>
+                {% endif %}
+                {% endif %}
+
+                {% endfor %}
+
+                {% if show_cta %}
+                <tr>
+                  <td class="pb-cta-cell" colspan="{{ colspan_total }}" align="center" style="padding-top: {{ cta_mt }}px;">
+                    <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin: 0 auto;">
+                      <tr>
+                        <td align="center" style="background-color: {{ cta_bg }}; border: {{ cta_border_width }}px solid {{ cta_border_color }}; border-radius: {{ cta_border_radius }}px; -webkit-border-radius: {{ cta_border_radius }}px; -moz-border-radius: {{ cta_border_radius }}px;">
+                          <a href="{{ cta_url }}" target="_blank" style="display: inline-block; padding: {{ cta_pv }}px {{ cta_ph }}px; font-family: {{ cta_font }}; font-size: {{ cta_size }}px; font-weight: {{ cta_weight }}; color: {{ cta_color }}; text-decoration: none; letter-spacing: {{ cta_letter_spacing }}px; text-transform: {{ cta_text_transform }}; border-radius: {{ cta_border_radius }}px; -webkit-text-size-adjust: none;">{{ cta_text }}</a>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+                {% endif %}
+
+              </table>
+            </td>
+          </tr>
+        </table>
+      </div>
+      <!--[if mso]>
+      </td></tr></table>
+      <![endif]-->
+    </td>
+  </tr>
+</table>
+
+{% endif %}
