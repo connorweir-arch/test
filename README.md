@@ -4,11 +4,18 @@ A fully parameterised, responsive HTML block for Bloomreach Engagement email cam
 
 ## Quick start
 
+> **Important:** Step 2 must be done before pasting the code. Bloomreach's parser validates that the first argument to `recommendations()` is a param of type `recommendation`, so the parameter must already exist when the code is loaded.
+
 1. In Bloomreach Engagement, create a new **HTML Block** (Data & Assets → Asset Manager → Blocks → New Block).
-2. Open the code editor and paste the contents of [`bloomreach-product-block.html`](bloomreach-product-block.html).
-3. Click **"Load parameters from code editor"** — all `params.*` references will be detected automatically.
-4. For each parameter, set the **type** and **default value** as documented in the table below (and in the comment block at the top of the HTML file).
-5. Save the block and insert it into any email campaign via the asset picker or as a Jinja reference.
+2. **Before pasting the code**, manually create the recommendation parameter:
+   - Click **"+ Add parameter"**
+   - Set the reference to `recommendationID`
+   - Set the type to `recommendation`
+   - Set the default value to `699f134bffe1f2b21aff1773`
+3. Paste the contents of [`bloomreach-product-block.html`](bloomreach-product-block.html) into the code editor.
+4. Click **"Load parameters from code editor"** — all remaining `params.*` references will be detected automatically.
+5. For each detected parameter, set the **type** and **default value** as documented in the table below (and in the comment block at the top of the HTML file).
+6. Save the block and insert it into any email campaign via the asset picker or as a Jinja reference.
 
 ## Features
 

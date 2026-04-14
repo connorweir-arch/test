@@ -1,13 +1,21 @@
 {# ─────────────────────────────────────────────────────────────────────
    Bloomreach Engagement – Dynamic Product Recommendation Block
 
-   SETUP:
+   SETUP (order matters!):
    1. Create a new HTML Block in Bloomreach
-   2. Paste this code into the code editor
-   3. Click "Load parameters from code editor"
-   4. All params.* references will be detected automatically
-   5. Set the types and defaults in the parameter editor as noted
-      in the comments below
+   2. BEFORE pasting code, manually create one parameter first:
+      - Click "+ Add parameter"
+      - Set reference to:  recommendationID
+      - Set type to:       recommendation
+      - Set default to:    699f134bffe1f2b21aff1773
+      This must exist before the code is parsed, because Bloomreach
+      validates that the first argument to recommendations() is a
+      param of type recommendation.
+   3. Paste this code into the code editor
+   4. Click "Load parameters from code editor" — all remaining
+      params.* references will be detected automatically
+   5. Set the types and defaults for each detected parameter as
+      noted in the table below
 
    PARAMETER DEFAULTS TO SET IN THE UI:
    ┌─────────────────────────┬─────────────────┬──────────────────────────────────┐
