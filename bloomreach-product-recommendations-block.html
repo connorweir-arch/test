@@ -136,13 +136,10 @@
 
         {# --- Product grid ---
              To change the recommendation engine, replace the ID string below.
-             Bloomreach requires this to be a hardcoded constant. #}
-        {% set recoItems = recommendations('699f134bffe1f2b21aff1773', size=params.productCount, fill_with_random=params.fillWithRandom) | default([]) %}
-        {% for item in recoItems %}
-          {% set itemUrl = item.url | default('#') %}
-          {% set itemImage = item.image | default('') %}
-          {% set itemTitle = item.title | default('') %}
-          {% set itemPrice = item.price | default('') %}
+             Bloomreach requires this to be a hardcoded constant.
+             Pre-defining item prevents the "values are possibly undefined" error. #}
+        {% set item = {} %}
+        {% for item in recommendations('699f134bffe1f2b21aff1773', size=params.productCount, fill_with_random=params.fillWithRandom) %}
 
           {% if loop.index0 % params.productsPerRow == 0 %}
         <tr>
@@ -154,9 +151,9 @@
               <tr>
                 <td style="background-color: {{ params.cardBgColor }}; border-radius: {{ params.cardBorderRadius }}px; padding: {{ params.cardPadding }}px;">
                   {% if params.linkEnabled %}
-                  <a href="{{ itemUrl }}" target="_blank" style="display: block; text-decoration: none;">
+                  <a href="{{ item.url | default('#') }}" target="_blank" style="display: block; text-decoration: none;">
                   {% endif %}
-                    <img src="{{ itemImage }}" alt="{{ itemTitle }}" width="100%" style="display: block; width: 100%; height: auto; border: 0; border-radius: {{ params.imageBorderRadius }}px;" />
+                    <img src="{{ item.image | default('') }}" alt="{{ item.title | default('') }}" width="100%" style="display: block; width: 100%; height: auto; border: 0; border-radius: {{ params.imageBorderRadius }}px;" />
                   {% if params.linkEnabled %}
                   </a>
                   {% endif %}
@@ -166,9 +163,9 @@
               <tr>
                 <td style="padding: {{ params.titlePaddingTop }}px 0 0 0; text-align: {{ params.titleAlign }}; font-family: {{ params.titleFontFamily }}; font-size: {{ params.titleFontSize }}px; line-height: {{ params.titleLineHeight }}; color: {{ params.titleColor }}; font-weight: {{ params.titleFontWeight }}; mso-line-height-rule: exactly;">
                   {% if params.linkEnabled %}
-                  <a href="{{ itemUrl }}" target="_blank" style="text-decoration: none; color: {{ params.titleColor }}; font-weight: {{ params.titleFontWeight }};">{{ itemTitle }}</a>
+                  <a href="{{ item.url | default('#') }}" target="_blank" style="text-decoration: none; color: {{ params.titleColor }}; font-weight: {{ params.titleFontWeight }};">{{ item.title | default('') }}</a>
                   {% else %}
-                  {{ itemTitle }}
+                  {{ item.title | default('') }}
                   {% endif %}
                 </td>
               </tr>
@@ -176,7 +173,7 @@
               {% if params.showPrice %}
               <tr>
                 <td style="padding: {{ params.pricePaddingTop }}px 0 0 0; text-align: {{ params.priceAlign }}; font-family: {{ params.priceFontFamily }}; font-size: {{ params.priceFontSize }}px; line-height: {{ params.priceLineHeight }}; color: {{ params.priceColor }}; font-weight: {{ params.priceFontWeight }}; mso-line-height-rule: exactly;">
-                  {{ params.pricePrefix }}{{ itemPrice }}
+                  {{ params.pricePrefix }}{{ item.price | default('') }}
                 </td>
               </tr>
               {% endif %}
@@ -193,6 +190,8 @@
         </tr>
           {% endif %}
 
+        {% else %}
+        {# No recommendations returned — render nothing #}
         {% endfor %}
 
         {% if params.showCta %}
