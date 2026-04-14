@@ -1,0 +1,159 @@
+{# ─────────────────────────────────────────────────────────────────────
+   Bloomreach Engagement – Dynamic Product Recommendation Block
+
+   SETUP:
+   1. Create a new HTML Block in Bloomreach
+   2. Paste this code into the code editor
+   3. Click "Load parameters from code editor"
+   4. All parameters will appear – grouped by category with tooltips
+   5. Default values recreate the Jellycat-style design from the brief
+
+   All styling is parameterised for full customisation by non-technical
+   users via the parameters UI.
+   ───────────────────────────────────────────────────────────────────── #}
+
+{# ══════════════════════ DATA ══════════════════════ #}
+
+{%- set recoModel      = "[[ {name: 'recoModel',      tooltip: 'Recommendation model used to fetch products',   category: 'Data', orderIndex: '100', isJsonParam: true} : recommendation | 699f134bffe1f2b21aff1773 ]]" -%}
+{%- set totalProducts  = "[[ {name: 'totalProducts',  tooltip: 'Total number of products to display',           category: 'Data', orderIndex: '110', isJsonParam: true} : number | 4 ]]" -%}
+{%- set productsPerRow = "[[ {name: 'productsPerRow', tooltip: 'Number of product cards per row (1–4)',         category: 'Data', orderIndex: '120', isJsonParam: true} : number | 2 ]]" -%}
+
+{# ══════════════════════ CONTAINER ══════════════════════ #}
+
+{%- set blockBgColor       = "[[ {name: 'blockBgColor',       tooltip: 'Background colour of the entire block',     category: 'Container', orderIndex: '200', isJsonParam: true} : color | #ffffff ]]" -%}
+{%- set blockPaddingTop    = "[[ {name: 'blockPaddingTop',    tooltip: 'Top padding in px',                          category: 'Container', orderIndex: '210', isJsonParam: true} : number | 20 ]]" -%}
+{%- set blockPaddingBottom = "[[ {name: 'blockPaddingBottom', tooltip: 'Bottom padding in px',                       category: 'Container', orderIndex: '220', isJsonParam: true} : number | 20 ]]" -%}
+{%- set blockPaddingLeft   = "[[ {name: 'blockPaddingLeft',   tooltip: 'Left padding in px',                         category: 'Container', orderIndex: '230', isJsonParam: true} : number | 10 ]]" -%}
+{%- set blockPaddingRight  = "[[ {name: 'blockPaddingRight',  tooltip: 'Right padding in px',                        category: 'Container', orderIndex: '240', isJsonParam: true} : number | 10 ]]" -%}
+{%- set blockMaxWidth      = "[[ {name: 'blockMaxWidth',      tooltip: 'Maximum width of the content area in px',    category: 'Container', orderIndex: '250', isJsonParam: true} : number | 600 ]]" -%}
+
+{# ══════════════════════ PRODUCT CARD ══════════════════════ #}
+
+{%- set cardBgColor      = "[[ {name: 'cardBgColor',      tooltip: 'Background colour of each product card',      category: 'Product Card', orderIndex: '300', isJsonParam: true} : color | #f2ece6 ]]" -%}
+{%- set cardBorderRadius = "[[ {name: 'cardBorderRadius', tooltip: 'Corner radius of the product card in px',      category: 'Product Card', orderIndex: '310', isJsonParam: true} : number | 12 ]]" -%}
+{%- set cardPadding      = "[[ {name: 'cardPadding',      tooltip: 'Inner padding of each product card in px',     category: 'Product Card', orderIndex: '320', isJsonParam: true} : number | 15 ]]" -%}
+{%- set cardGap          = "[[ {name: 'cardGap',          tooltip: 'Gap between product cards in px',              category: 'Product Card', orderIndex: '330', isJsonParam: true} : number | 10 ]]" -%}
+
+{# ══════════════════════ PRODUCT IMAGE ══════════════════════ #}
+
+{%- set imageBorderRadius = "[[ {name: 'imageBorderRadius', tooltip: 'Corner radius of the product image in px',         category: 'Product Image', orderIndex: '400', isJsonParam: true} : number | 8 ]]" -%}
+{%- set imageMaxHeight    = "[[ {name: 'imageMaxHeight',    tooltip: 'Max height of product image in px (0 = no limit)', category: 'Product Image', orderIndex: '410', isJsonParam: true} : number | 0 ]]" -%}
+
+{# ══════════════════════ TYPOGRAPHY ══════════════════════ #}
+
+{%- set titleFontFamily = "[[ {name: 'titleFontFamily', tooltip: 'Font family for the product title',          category: 'Typography', orderIndex: '500', isJsonParam: true} : string | Arial, Helvetica, sans-serif ]]" -%}
+{%- set titleFontSize   = "[[ {name: 'titleFontSize',   tooltip: 'Font size of the product title in px',      category: 'Typography', orderIndex: '510', isJsonParam: true} : number | 13 ]]" -%}
+{%- set titleFontWeight = "[[ {name: 'titleFontWeight', tooltip: 'Font weight of the product title',          category: 'Typography', orderIndex: '520', isJsonParam: true} : enum(normal, bold, 300, 400, 500, 600, 700) | normal ]]" -%}
+{%- set titleColor      = "[[ {name: 'titleColor',      tooltip: 'Text colour of the product title',          category: 'Typography', orderIndex: '530', isJsonParam: true} : color | #333333 ]]" -%}
+{%- set titleAlign      = "[[ {name: 'titleAlign',      tooltip: 'Text alignment of the product title',       category: 'Typography', orderIndex: '540', isJsonParam: true} : enum(left, center, right) | center ]]" -%}
+{%- set titlePaddingTop = "[[ {name: 'titlePaddingTop', tooltip: 'Spacing above the product title in px',     category: 'Typography', orderIndex: '550', isJsonParam: true} : number | 10 ]]" -%}
+{%- set titleLineHeight = "[[ {name: 'titleLineHeight', tooltip: 'Line height of the product title (e.g. 1.4)', category: 'Typography', orderIndex: '560', isJsonParam: true} : string | 1.4 ]]" -%}
+
+{# ══════════════════════ PRICE ══════════════════════ #}
+
+{%- set showPrice       = "[[ {name: 'showPrice',       tooltip: 'Show the product price below the title',    category: 'Price', orderIndex: '600', isJsonParam: true} : boolean | false ]]" -%}
+{%- set priceFontSize   = "[[ {name: 'priceFontSize',   tooltip: 'Font size of the price in px',              category: 'Price', orderIndex: '610', isJsonParam: true} : number | 13 ]]" -%}
+{%- set priceColor      = "[[ {name: 'priceColor',      tooltip: 'Text colour of the price',                  category: 'Price', orderIndex: '620', isJsonParam: true} : color | #333333 ]]" -%}
+{%- set priceFontWeight = "[[ {name: 'priceFontWeight', tooltip: 'Font weight of the price',                  category: 'Price', orderIndex: '630', isJsonParam: true} : enum(normal, bold, 300, 400, 500, 600, 700) | bold ]]" -%}
+{%- set pricePrefix     = "[[ {name: 'pricePrefix',     tooltip: 'Currency symbol or text before the price',  category: 'Price', orderIndex: '640', isJsonParam: true} : string | £ ]]" -%}
+
+{# ══════════════════════ CTA BUTTON ══════════════════════ #}
+
+{%- set showCta         = "[[ {name: 'showCta',         tooltip: 'Show a call-to-action button below products', category: 'CTA Button', orderIndex: '700', isJsonParam: true} : boolean | true ]]" -%}
+{%- set ctaText         = "[[ {name: 'ctaText',         tooltip: 'Label of the CTA button',                     category: 'CTA Button', orderIndex: '710', isJsonParam: true} : string | Get reunited ]]" -%}
+{%- set ctaUrl          = "[[ {name: 'ctaUrl',          tooltip: 'URL the CTA button links to',                 category: 'CTA Button', orderIndex: '720', isJsonParam: true} : string | https://jellycat.com ]]" -%}
+{%- set ctaBgColor      = "[[ {name: 'ctaBgColor',      tooltip: 'Background colour of the CTA button',        category: 'CTA Button', orderIndex: '730', isJsonParam: true} : color | #e24740 ]]" -%}
+{%- set ctaTextColor    = "[[ {name: 'ctaTextColor',    tooltip: 'Text colour of the CTA button',              category: 'CTA Button', orderIndex: '740', isJsonParam: true} : color | #ffffff ]]" -%}
+{%- set ctaFontSize     = "[[ {name: 'ctaFontSize',     tooltip: 'Font size of the CTA button text in px',     category: 'CTA Button', orderIndex: '750', isJsonParam: true} : number | 14 ]]" -%}
+{%- set ctaFontFamily   = "[[ {name: 'ctaFontFamily',   tooltip: 'Font family for the CTA button text',        category: 'CTA Button', orderIndex: '755', isJsonParam: true} : string | Arial, Helvetica, sans-serif ]]" -%}
+{%- set ctaFontWeight   = "[[ {name: 'ctaFontWeight',   tooltip: 'Font weight of the CTA button text',         category: 'CTA Button', orderIndex: '760', isJsonParam: true} : enum(normal, bold, 300, 400, 500, 600, 700) | bold ]]" -%}
+{%- set ctaBorderRadius = "[[ {name: 'ctaBorderRadius', tooltip: 'Corner radius of the CTA button in px',      category: 'CTA Button', orderIndex: '770', isJsonParam: true} : number | 20 ]]" -%}
+{%- set ctaPaddingV     = "[[ {name: 'ctaPaddingV',     tooltip: 'Vertical padding of the CTA button in px',   category: 'CTA Button', orderIndex: '780', isJsonParam: true} : number | 10 ]]" -%}
+{%- set ctaPaddingH     = "[[ {name: 'ctaPaddingH',     tooltip: 'Horizontal padding of the CTA button in px', category: 'CTA Button', orderIndex: '790', isJsonParam: true} : number | 30 ]]" -%}
+{%- set ctaTopMargin    = "[[ {name: 'ctaTopMargin',    tooltip: 'Spacing above the CTA button in px',         category: 'CTA Button', orderIndex: '800', isJsonParam: true} : number | 20 ]]" -%}
+{%- set ctaBorderColor  = "[[ {name: 'ctaBorderColor',  tooltip: 'Border colour of the CTA button',            category: 'CTA Button', orderIndex: '810', isJsonParam: true} : color | #e24740 ]]" -%}
+{%- set ctaBorderWidth  = "[[ {name: 'ctaBorderWidth',  tooltip: 'Border width of the CTA button in px',       category: 'CTA Button', orderIndex: '820', isJsonParam: true} : number | 1 ]]" -%}
+
+{# ══════════ FETCH RECOMMENDED PRODUCTS ══════════ #}
+
+{%- set items  = recommendations(recoModel, totalProducts | int) -%}
+{%- set perRow = productsPerRow | int -%}
+{%- set halfGap = (cardGap | int / 2) | round(0) | int -%}
+
+{# ══════════════════════════════════════════════════════════════
+   HTML OUTPUT – table-based layout for maximum email-client support
+   ══════════════════════════════════════════════════════════════ #}
+
+<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background-color: {{ blockBgColor }};">
+  <tr>
+    <td align="center" style="padding: {{ blockPaddingTop }}px {{ blockPaddingRight }}px {{ blockPaddingBottom }}px {{ blockPaddingLeft }}px;">
+
+      <!--[if mso]>
+      <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="{{ blockMaxWidth }}"><tr><td align="center">
+      <![endif]-->
+      <div style="max-width: {{ blockMaxWidth }}px; margin: 0 auto;">
+
+        {# ──── PRODUCT GRID ──── #}
+
+        <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
+          {%- for item in items -%}
+
+            {%- if loop.index0 % perRow == 0 %}
+          <tr>
+            {%- endif %}
+
+            <td width="{{ (100 / perRow) | round(0) | int }}%" valign="top" style="padding: 0 {{ halfGap }}px {{ cardGap }}px {{ halfGap }}px;">
+              <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background-color: {{ cardBgColor }}; border-radius: {{ cardBorderRadius }}px; overflow: hidden;">
+                <tr>
+                  <td align="center" style="padding: {{ cardPadding }}px;">
+
+                    <a href="{{ item['url'] }}" target="_blank" style="text-decoration: none;">
+                      <img src="{{ item['image'] }}" alt="{{ item['title'] }}" style="display: block; width: 100%; height: auto;{% if imageMaxHeight | int > 0 %} max-height: {{ imageMaxHeight }}px; object-fit: contain;{% endif %} border-radius: {{ imageBorderRadius }}px; border: 0;" />
+                    </a>
+
+                    <a href="{{ item['url'] }}" target="_blank" style="text-decoration: none;">
+                      <p style="margin: 0; padding-top: {{ titlePaddingTop }}px; font-family: {{ titleFontFamily }}; font-size: {{ titleFontSize }}px; font-weight: {{ titleFontWeight }}; color: {{ titleColor }}; text-align: {{ titleAlign }}; line-height: {{ titleLineHeight }};">{{ item['title'] }}</p>
+                    </a>
+
+                    {%- if showPrice is sameas true or showPrice == "True" or showPrice == "true" %}
+                    <p style="margin: 0; padding-top: 4px; font-family: {{ titleFontFamily }}; font-size: {{ priceFontSize }}px; font-weight: {{ priceFontWeight }}; color: {{ priceColor }}; text-align: {{ titleAlign }}; line-height: {{ titleLineHeight }};">{{ pricePrefix }}{{ item['price'] | round(2) }}</p>
+                    {%- endif %}
+
+                  </td>
+                </tr>
+              </table>
+            </td>
+
+            {%- if loop.index0 % perRow == (perRow - 1) or loop.last %}
+          </tr>
+            {%- endif -%}
+
+          {%- endfor %}
+        </table>
+
+        {# ──── CTA BUTTON ──── #}
+
+        {%- if showCta is sameas true or showCta == "True" or showCta == "true" %}
+        <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
+          <tr>
+            <td align="center" style="padding-top: {{ ctaTopMargin }}px;">
+              <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+                <tr>
+                  <td align="center" style="background-color: {{ ctaBgColor }}; border-radius: {{ ctaBorderRadius }}px; border: {{ ctaBorderWidth }}px solid {{ ctaBorderColor }};">
+                    <a href="{{ ctaUrl }}" target="_blank" style="display: inline-block; padding: {{ ctaPaddingV }}px {{ ctaPaddingH }}px; font-family: {{ ctaFontFamily }}; font-size: {{ ctaFontSize }}px; font-weight: {{ ctaFontWeight }}; color: {{ ctaTextColor }}; text-decoration: none; letter-spacing: 0.5px;">{{ ctaText }}</a>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+        </table>
+        {%- endif %}
+
+      </div>
+      <!--[if mso]>
+      </td></tr></table>
+      <![endif]-->
+
+    </td>
+  </tr>
+</table>
