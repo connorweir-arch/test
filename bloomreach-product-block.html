@@ -12,11 +12,21 @@
    users via the parameters UI.
    ───────────────────────────────────────────────────────────────────── #}
 
-{# ══════════════════════ DATA ══════════════════════ #}
+{# ══════════ FETCH RECOMMENDED PRODUCTS ══════════
+   recoModel and totalProducts are inlined directly in the
+   recommendations() call because Bloomreach's parser requires
+   the recommendation param to be a constant or [[ ]] token
+   inside the function call itself.
+   ════════════════════════════════════════════════════ #}
 
-{%- set recoModel      = "[[ {name: 'recoModel',      tooltip: 'Recommendation model used to fetch products',   category: 'Data', orderIndex: '100', isJsonParam: true} : recommendation | 699f134bffe1f2b21aff1773 ]]" -%}
-{%- set totalProducts  = "[[ {name: 'totalProducts',  tooltip: 'Total number of products to display',           category: 'Data', orderIndex: '110', isJsonParam: true} : number | 4 ]]" -%}
-{%- set productsPerRow = "[[ {name: 'productsPerRow', tooltip: 'Number of product cards per row (1–4)',         category: 'Data', orderIndex: '120', isJsonParam: true} : number | 2 ]]" -%}
+{%- set items = recommendations(
+  "[[ {name: 'recoModel', tooltip: 'Recommendation model used to fetch products', category: 'Data', orderIndex: '100', isJsonParam: true} : recommendation | 699f134bffe1f2b21aff1773 ]]",
+  "[[ {name: 'totalProducts', tooltip: 'Total number of products to display', category: 'Data', orderIndex: '110', isJsonParam: true} : number | 4 ]]" | int
+) -%}
+
+{# ══════════════════════ LAYOUT ══════════════════════ #}
+
+{%- set productsPerRow = "[[ {name: 'productsPerRow', tooltip: 'Number of product cards per row (1–4)', category: 'Data', orderIndex: '120', isJsonParam: true} : number | 2 ]]" -%}
 
 {# ══════════════════════ CONTAINER ══════════════════════ #}
 
@@ -41,12 +51,12 @@
 
 {# ══════════════════════ TYPOGRAPHY ══════════════════════ #}
 
-{%- set titleFontFamily = "[[ {name: 'titleFontFamily', tooltip: 'Font family for the product title',          category: 'Typography', orderIndex: '500', isJsonParam: true} : string | Arial, Helvetica, sans-serif ]]" -%}
-{%- set titleFontSize   = "[[ {name: 'titleFontSize',   tooltip: 'Font size of the product title in px',      category: 'Typography', orderIndex: '510', isJsonParam: true} : number | 13 ]]" -%}
-{%- set titleFontWeight = "[[ {name: 'titleFontWeight', tooltip: 'Font weight of the product title',          category: 'Typography', orderIndex: '520', isJsonParam: true} : enum(normal, bold, 300, 400, 500, 600, 700) | normal ]]" -%}
-{%- set titleColor      = "[[ {name: 'titleColor',      tooltip: 'Text colour of the product title',          category: 'Typography', orderIndex: '530', isJsonParam: true} : color | #333333 ]]" -%}
-{%- set titleAlign      = "[[ {name: 'titleAlign',      tooltip: 'Text alignment of the product title',       category: 'Typography', orderIndex: '540', isJsonParam: true} : enum(left, center, right) | center ]]" -%}
-{%- set titlePaddingTop = "[[ {name: 'titlePaddingTop', tooltip: 'Spacing above the product title in px',     category: 'Typography', orderIndex: '550', isJsonParam: true} : number | 10 ]]" -%}
+{%- set titleFontFamily = "[[ {name: 'titleFontFamily', tooltip: 'Font family for the product title',             category: 'Typography', orderIndex: '500', isJsonParam: true} : string | Arial, Helvetica, sans-serif ]]" -%}
+{%- set titleFontSize   = "[[ {name: 'titleFontSize',   tooltip: 'Font size of the product title in px',         category: 'Typography', orderIndex: '510', isJsonParam: true} : number | 13 ]]" -%}
+{%- set titleFontWeight = "[[ {name: 'titleFontWeight', tooltip: 'Font weight of the product title',             category: 'Typography', orderIndex: '520', isJsonParam: true} : enum(normal, bold, 300, 400, 500, 600, 700) | normal ]]" -%}
+{%- set titleColor      = "[[ {name: 'titleColor',      tooltip: 'Text colour of the product title',             category: 'Typography', orderIndex: '530', isJsonParam: true} : color | #333333 ]]" -%}
+{%- set titleAlign      = "[[ {name: 'titleAlign',      tooltip: 'Text alignment of the product title',          category: 'Typography', orderIndex: '540', isJsonParam: true} : enum(left, center, right) | center ]]" -%}
+{%- set titlePaddingTop = "[[ {name: 'titlePaddingTop', tooltip: 'Spacing above the product title in px',        category: 'Typography', orderIndex: '550', isJsonParam: true} : number | 10 ]]" -%}
 {%- set titleLineHeight = "[[ {name: 'titleLineHeight', tooltip: 'Line height of the product title (e.g. 1.4)', category: 'Typography', orderIndex: '560', isJsonParam: true} : string | 1.4 ]]" -%}
 
 {# ══════════════════════ PRICE ══════════════════════ #}
@@ -74,10 +84,9 @@
 {%- set ctaBorderColor  = "[[ {name: 'ctaBorderColor',  tooltip: 'Border colour of the CTA button',            category: 'CTA Button', orderIndex: '810', isJsonParam: true} : color | #e24740 ]]" -%}
 {%- set ctaBorderWidth  = "[[ {name: 'ctaBorderWidth',  tooltip: 'Border width of the CTA button in px',       category: 'CTA Button', orderIndex: '820', isJsonParam: true} : number | 1 ]]" -%}
 
-{# ══════════ FETCH RECOMMENDED PRODUCTS ══════════ #}
+{# ══════════ COMPUTED HELPERS ══════════ #}
 
-{%- set items  = recommendations(recoModel, totalProducts | int) -%}
-{%- set perRow = productsPerRow | int -%}
+{%- set perRow  = productsPerRow | int -%}
 {%- set halfGap = (cardGap | int / 2) | round(0) | int -%}
 
 {# ══════════════════════════════════════════════════════════════
