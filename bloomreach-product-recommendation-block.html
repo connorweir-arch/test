@@ -1,0 +1,200 @@
+{# ═══════════════════════════════════════════════════════════════════ #}
+{# DYNAMIC PRODUCT RECOMMENDATION BLOCK                               #}
+{# Bloomreach Engagement – Email HTML Block                            #}
+{#                                                                     #}
+{# Paste this code into an HTML block in Bloomreach Engagement, then   #}
+{# click "Load parameters from the code editor" to populate all        #}
+{# configurable parameters in the visual editor.                       #}
+{# ═══════════════════════════════════════════════════════════════════ #}
+
+
+{# ── Recommendation Settings ─────────────────────────────────────── #}
+
+{% set cols = [[ {name: 'productsPerRow', tooltip: 'Number of products shown per row on desktop', category: 'Recommendation Settings', orderIndex: '120', isJsonParam: true} : number | 2 ]] %}
+{% set mob_cols = [[ {name: 'mobileProductsPerRow', tooltip: 'Number of products shown per row on mobile', category: 'Recommendation Settings', orderIndex: '130', isJsonParam: true} : number | 1 ]] %}
+
+
+{# ── Layout ──────────────────────────────────────────────────────── #}
+
+{% set max_width = [[ {name: 'blockMaxWidth', tooltip: 'Maximum width of the block in pixels', category: 'Layout', orderIndex: '200', isJsonParam: true} : number | 600 ]] %}
+{% set block_bg = "[[ {name: 'blockBgColor', tooltip: 'Background color of the entire block', category: 'Layout', orderIndex: '210', isJsonParam: true} : color | #ffffff ]]" %}
+{% set pad_top = [[ {name: 'blockPaddingTop', tooltip: 'Top padding of the block in pixels', category: 'Layout', orderIndex: '220', isJsonParam: true} : number | 20 ]] %}
+{% set pad_bottom = [[ {name: 'blockPaddingBottom', tooltip: 'Bottom padding of the block in pixels', category: 'Layout', orderIndex: '230', isJsonParam: true} : number | 20 ]] %}
+{% set pad_left = [[ {name: 'blockPaddingLeft', tooltip: 'Left padding of the block in pixels', category: 'Layout', orderIndex: '240', isJsonParam: true} : number | 16 ]] %}
+{% set pad_right = [[ {name: 'blockPaddingRight', tooltip: 'Right padding of the block in pixels', category: 'Layout', orderIndex: '250', isJsonParam: true} : number | 16 ]] %}
+{% set mob_bp = [[ {name: 'mobileBreakpoint', tooltip: 'Screen width in pixels below which mobile layout applies', category: 'Layout', orderIndex: '260', isJsonParam: true} : number | 480 ]] %}
+
+
+{# ── Product Card ────────────────────────────────────────────────── #}
+
+{% set card_bg = "[[ {name: 'cardBgColor', tooltip: 'Background color of each product card', category: 'Product Card', orderIndex: '400', isJsonParam: true} : color | #f2ece6 ]]" %}
+{% set card_rad = [[ {name: 'cardBorderRadius', tooltip: 'Corner radius of each product card in pixels', category: 'Product Card', orderIndex: '410', isJsonParam: true} : number | 12 ]] %}
+{% set card_pad = [[ {name: 'cardPadding', tooltip: 'Inner padding of each product card in pixels', category: 'Product Card', orderIndex: '420', isJsonParam: true} : number | 10 ]] %}
+{% set gap = [[ {name: 'cardGap', tooltip: 'Space between product cards in pixels', category: 'Product Card', orderIndex: '430', isJsonParam: true} : number | 16 ]] %}
+
+
+{# ── Product Image ───────────────────────────────────────────────── #}
+
+{% set img_rad = [[ {name: 'imageBorderRadius', tooltip: 'Corner radius of the product image in pixels', category: 'Product Image', orderIndex: '500', isJsonParam: true} : number | 8 ]] %}
+
+
+{# ── Product Title ───────────────────────────────────────────────── #}
+
+{% set t_font = "[[ {name: 'titleFontFamily', tooltip: 'Font family for product titles', category: 'Product Title', orderIndex: '600', isJsonParam: true} : string | Georgia, Times, serif ]]" %}
+{% set t_size = [[ {name: 'titleFontSize', tooltip: 'Font size for product titles in pixels', category: 'Product Title', orderIndex: '610', isJsonParam: true} : number | 13 ]] %}
+{% set t_clr = "[[ {name: 'titleColor', tooltip: 'Text color for product titles', category: 'Product Title', orderIndex: '620', isJsonParam: true} : color | #333333 ]]" %}
+{% set t_weight = "[[ {name: 'titleFontWeight', tooltip: 'Font weight for product titles', category: 'Product Title', orderIndex: '630', isJsonParam: true} : enum(normal, bold) | normal ]]" %}
+{% set t_pad = [[ {name: 'titlePaddingTop', tooltip: 'Space between image and title in pixels', category: 'Product Title', orderIndex: '640', isJsonParam: true} : number | 10 ]] %}
+{% set t_align = "[[ {name: 'titleTextAlign', tooltip: 'Horizontal alignment of product titles', category: 'Product Title', orderIndex: '650', isJsonParam: true} : enum(left, center, right) | center ]]" %}
+{% set t_lh = [[ {name: 'titleLineHeight', tooltip: 'Line height for product titles in pixels', category: 'Product Title', orderIndex: '660', isJsonParam: true} : number | 18 ]] %}
+{% set t_deco = "[[ {name: 'titleTextDecoration', tooltip: 'Text decoration for product title links', category: 'Product Title', orderIndex: '670', isJsonParam: true} : enum(none, underline) | none ]]" %}
+{% set t_link_clr = "[[ {name: 'titleLinkColor', tooltip: 'Link color for product titles', category: 'Product Title', orderIndex: '680', isJsonParam: true} : color | #333333 ]]" %}
+
+
+{# ── Product Price ───────────────────────────────────────────────── #}
+
+{% set show_price = [[ {name: 'showPrice', tooltip: 'Toggle product price visibility', category: 'Product Price', orderIndex: '700', isJsonParam: true} : boolean | false ]] %}
+{% set p_font = "[[ {name: 'priceFontFamily', tooltip: 'Font family for product prices', category: 'Product Price', orderIndex: '710', isJsonParam: true} : string | Arial, Helvetica, sans-serif ]]" %}
+{% set p_size = [[ {name: 'priceFontSize', tooltip: 'Font size for product prices in pixels', category: 'Product Price', orderIndex: '720', isJsonParam: true} : number | 13 ]] %}
+{% set p_clr = "[[ {name: 'priceColor', tooltip: 'Text color for product prices', category: 'Product Price', orderIndex: '730', isJsonParam: true} : color | #333333 ]]" %}
+{% set p_weight = "[[ {name: 'priceFontWeight', tooltip: 'Font weight for product prices', category: 'Product Price', orderIndex: '740', isJsonParam: true} : enum(normal, bold) | bold ]]" %}
+{% set p_pre = "[[ {name: 'pricePrefix', tooltip: 'Currency symbol or prefix shown before the price', category: 'Product Price', orderIndex: '750', isJsonParam: true} : string | £ ]]" %}
+{% set p_pad = [[ {name: 'pricePaddingTop', tooltip: 'Space between title and price in pixels', category: 'Product Price', orderIndex: '760', isJsonParam: true} : number | 4 ]] %}
+
+
+{# ── CTA Button ──────────────────────────────────────────────────── #}
+
+{% set show_cta = [[ {name: 'showCta', tooltip: 'Toggle CTA button visibility below products', category: 'CTA Button', orderIndex: '800', isJsonParam: true} : boolean | true ]] %}
+{% set cta_label = "[[ {name: 'ctaText', tooltip: 'Text displayed on the CTA button', category: 'CTA Button', orderIndex: '810', isJsonParam: true} : string | Get reunited ]]" %}
+{% set cta_href = "[[ {name: 'ctaUrl', tooltip: 'Link URL for the CTA button', category: 'CTA Button', orderIndex: '820', isJsonParam: true} : string | https://jellycat.com ]]" %}
+{% set cta_bg = "[[ {name: 'ctaBgColor', tooltip: 'Background color of the CTA button', category: 'CTA Button', orderIndex: '830', isJsonParam: true} : color | #e4554a ]]" %}
+{% set cta_tc = "[[ {name: 'ctaTextColor', tooltip: 'Text color of the CTA button', category: 'CTA Button', orderIndex: '840', isJsonParam: true} : color | #ffffff ]]" %}
+{% set cta_font = "[[ {name: 'ctaFontFamily', tooltip: 'Font family for CTA button text', category: 'CTA Button', orderIndex: '850', isJsonParam: true} : string | Arial, Helvetica, sans-serif ]]" %}
+{% set cta_fs = [[ {name: 'ctaFontSize', tooltip: 'Font size of the CTA button text in pixels', category: 'CTA Button', orderIndex: '860', isJsonParam: true} : number | 14 ]] %}
+{% set cta_rad = [[ {name: 'ctaBorderRadius', tooltip: 'Corner radius of the CTA button in pixels', category: 'CTA Button', orderIndex: '870', isJsonParam: true} : number | 24 ]] %}
+{% set cta_pv = [[ {name: 'ctaPaddingVertical', tooltip: 'Vertical padding inside the CTA button in pixels', category: 'CTA Button', orderIndex: '880', isJsonParam: true} : number | 12 ]] %}
+{% set cta_ph = [[ {name: 'ctaPaddingHorizontal', tooltip: 'Horizontal padding inside the CTA button in pixels', category: 'CTA Button', orderIndex: '890', isJsonParam: true} : number | 32 ]] %}
+{% set cta_mt = [[ {name: 'ctaMarginTop', tooltip: 'Space above the CTA button in pixels', category: 'CTA Button', orderIndex: '892', isJsonParam: true} : number | 24 ]] %}
+{% set cta_bc = "[[ {name: 'ctaBorderColor', tooltip: 'Border color of the CTA button', category: 'CTA Button', orderIndex: '894', isJsonParam: true} : color | #e4554a ]]" %}
+{% set cta_bw = [[ {name: 'ctaBorderWidth', tooltip: 'Border width of the CTA button in pixels', category: 'CTA Button', orderIndex: '896', isJsonParam: true} : number | 1 ]] %}
+{% set cta_fw = "[[ {name: 'ctaFontWeight', tooltip: 'Font weight of the CTA button text', category: 'CTA Button', orderIndex: '898', isJsonParam: true} : enum(normal, bold) | normal ]]" %}
+
+
+{# ── Derived Values ──────────────────────────────────────────────── #}
+
+{% set col_pct = (100 / cols) | round(0, 'floor') | int %}
+{% set mob_col_pct = (100 / mob_cols) | round(0, 'floor') | int %}
+{% set half_gap = (gap / 2) | round(0, 'floor') | int %}
+
+
+{# ── Fetch Recommendations ───────────────────────────────────────── #}
+
+{% set items = recommendations(
+  "[[ {name: 'recommendationModel', tooltip: 'The recommendation engine used to select products', category: 'Recommendation Settings', orderIndex: '100', isJsonParam: true} : recommendation | 699f134bffe1f2b21aff1773 ]]",
+  [[ {name: 'productCount', tooltip: 'Total number of products to display', category: 'Recommendation Settings', orderIndex: '110', isJsonParam: true} : number | 2 ]]
+) %}
+
+
+{# ── Responsive Styles ───────────────────────────────────────────── #}
+
+<style>
+  @media only screen and (max-width: {{ mob_bp }}px) {
+    .br-product-grid { font-size: 0 !important; }
+    .br-product-cell {
+      display: inline-block !important;
+      width: {{ mob_col_pct }}% !important;
+      vertical-align: top !important;
+      font-size: initial !important;
+    }
+  }
+</style>
+
+
+{# ── HTML Output ─────────────────────────────────────────────────── #}
+
+{% if items %}
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: {{ block_bg }};">
+  <tr>
+    <td align="center" style="padding: 0;">
+      <!--[if mso]>
+      <table role="presentation" width="{{ max_width }}" cellpadding="0" cellspacing="0" border="0" align="center" style="width:{{ max_width }}px;">
+      <tr><td>
+      <![endif]-->
+      <div style="max-width: {{ max_width }}px; margin: 0 auto;">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+          <tr>
+            <td style="padding: {{ pad_top }}px {{ pad_right }}px {{ pad_bottom }}px {{ pad_left }}px; background-color: {{ block_bg }};">
+
+              {# ── Product Grid ──────────────────────────── #}
+              <table class="br-product-grid" role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+                {% for item in items %}
+                  {% if loop.index0 % cols == 0 %}<tr>{% endif %}
+                <td class="br-product-cell" width="{{ col_pct }}%" valign="top" style="padding: {{ half_gap }}px; vertical-align: top;">
+                  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: {{ card_bg }}; border-radius: {{ card_rad }}px;">
+                    <tr>
+                      <td style="padding: {{ card_pad }}px {{ card_pad }}px 0 {{ card_pad }}px;">
+                        <a href="{{ item.url }}" target="_blank" style="text-decoration: none;">
+                          <img src="{{ item.image }}" alt="{{ item.title }}" width="100%" style="display: block; width: 100%; height: auto; border: 0; border-radius: {{ img_rad }}px;" />
+                        </a>
+                      </td>
+                    </tr>
+                    <tr>
+                      <td style="padding: {{ t_pad }}px {{ card_pad }}px {% if show_price %}0{% else %}{{ card_pad }}{% endif %}px {{ card_pad }}px; text-align: {{ t_align }}; font-family: {{ t_font }}; font-size: {{ t_size }}px; line-height: {{ t_lh }}px; color: {{ t_clr }}; font-weight: {{ t_weight }};">
+                        <a href="{{ item.url }}" target="_blank" style="color: {{ t_link_clr }}; text-decoration: {{ t_deco }}; font-family: {{ t_font }}; font-size: {{ t_size }}px; line-height: {{ t_lh }}px; font-weight: {{ t_weight }};">{{ item.title }}</a>
+                      </td>
+                    </tr>
+                    {% if show_price %}
+                    <tr>
+                      <td style="padding: {{ p_pad }}px {{ card_pad }}px {{ card_pad }}px {{ card_pad }}px; text-align: {{ t_align }}; font-family: {{ p_font }}; font-size: {{ p_size }}px; line-height: {{ p_size + 4 }}px; color: {{ p_clr }}; font-weight: {{ p_weight }};">
+                        {{ p_pre }}{{ item.price }}
+                      </td>
+                    </tr>
+                    {% endif %}
+                  </table>
+                </td>
+                  {% if loop.index0 % cols == (cols - 1) or loop.last %}
+                    {% if loop.last and (loop.index % cols) != 0 %}
+                      {% for _pad in range(cols - (loop.index % cols)) %}
+                <td class="br-product-cell" width="{{ col_pct }}%" style="padding: {{ half_gap }}px; vertical-align: top;">&nbsp;</td>
+                      {% endfor %}
+                    {% endif %}
+                  </tr>
+                  {% endif %}
+                {% endfor %}
+              </table>
+
+              {# ── CTA Button ────────────────────────────── #}
+              {% if show_cta %}
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+                <tr>
+                  <td align="center" style="padding: {{ cta_mt }}px 0 0 0;">
+                    <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+                      <tr>
+                        <td align="center" style="background-color: {{ cta_bg }}; border-radius: {{ cta_rad }}px; border: {{ cta_bw }}px solid {{ cta_bc }}; mso-border-alt: none;">
+                          <!--[if mso]>
+                          <v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" xmlns:w="urn:schemas-microsoft-com:office:word" href="{{ cta_href }}" style="height:{{ cta_pv * 2 + cta_fs + 4 }}px;v-text-anchor:middle;width:auto;" arcsize="50%" strokecolor="{{ cta_bc }}" fillcolor="{{ cta_bg }}">
+                          <w:anchorlock/><center style="color:{{ cta_tc }};font-family:{{ cta_font }};font-size:{{ cta_fs }}px;font-weight:{{ cta_fw }};">{{ cta_label }}</center>
+                          </v:roundrect>
+                          <![endif]-->
+                          <!--[if !mso]><!-->
+                          <a href="{{ cta_href }}" target="_blank" style="display: inline-block; padding: {{ cta_pv }}px {{ cta_ph }}px; color: {{ cta_tc }}; font-family: {{ cta_font }}; font-size: {{ cta_fs }}px; font-weight: {{ cta_fw }}; text-decoration: none; text-align: center; mso-hide: all;">{{ cta_label }}</a>
+                          <!--<![endif]-->
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+              </table>
+              {% endif %}
+
+            </td>
+          </tr>
+        </table>
+      </div>
+      <!--[if mso]>
+      </td></tr></table>
+      <![endif]-->
+    </td>
+  </tr>
+</table>
+{% endif %}
