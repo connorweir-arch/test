@@ -196,11 +196,11 @@
 
         {% if params.showCta %}
         <tr>
-          <td {% if params.productsPerRow > 1 %}colspan="{{ params.productsPerRow }}"{% endif %} align="{{ params.ctaAlign }}" style="padding: {{ params.ctaMarginTop }}px {{ halfGap }}px 0 {{ halfGap }}px;">
-            <table cellpadding="0" cellspacing="0" border="0" role="presentation" {% if params.ctaAlign == 'center' %}style="margin: 0 auto;"{% endif %}>
+          <td {% if params.productsPerRow > 1 %}colspan="{{ params.productsPerRow }}"{% endif %} style="padding: {{ params.ctaMarginTop }}px {{ halfGap }}px 0 {{ halfGap }}px;">
+            <table width="100%" cellpadding="0" cellspacing="0" border="0" role="presentation">
               <tr>
                 <td align="center" style="background-color: {{ params.ctaBgColor }}; border: {{ params.ctaBorderWidth }}px solid {{ params.ctaBorderColor }}; border-radius: {{ params.ctaBorderRadius }}px; mso-padding-alt: {{ params.ctaPaddingV }}px {{ params.ctaPaddingH }}px;">
-                  <a href="{{ params.ctaUrl }}" target="_blank" style="display: inline-block; font-family: {{ params.ctaFontFamily }}; font-size: {{ params.ctaFontSize }}px; font-weight: {{ params.ctaFontWeight }}; color: {{ params.ctaTextColor }}; text-decoration: none; padding: {{ params.ctaPaddingV }}px {{ params.ctaPaddingH }}px; line-height: 1; mso-line-height-rule: exactly;">{{ params.ctaText }}</a>
+                  <a href="{{ params.ctaUrl }}" target="_blank" style="display: block; font-family: {{ params.ctaFontFamily }}; font-size: {{ params.ctaFontSize }}px; font-weight: {{ params.ctaFontWeight }}; color: {{ params.ctaTextColor }}; text-decoration: none; text-align: center; padding: {{ params.ctaPaddingV }}px 0; line-height: 1; mso-line-height-rule: exactly;">{{ params.ctaText }}</a>
                 </td>
               </tr>
             </table>
