@@ -46,6 +46,7 @@
    imageBorderRadius number    8
 
    ── Product Title ───────────────────────────────────
+   showTitle         boolean   true
    titleFontFamily   string    Arial, Helvetica, sans-serif
    titleFontSize     number    13
    titleColor        color     #333333
@@ -68,7 +69,6 @@
    ── CTA Button ──────────────────────────────────────
    showCta           boolean   true
    ctaText           string    Get reunited
-   ctaUrl            string    https://jellycat.com
    ctaBgColor        color     #ffffff
    ctaTextColor      color     #d4483b
    ctaBorderColor    color     #d4483b
@@ -79,8 +79,7 @@
    ctaFontWeight     string    normal
    ctaPaddingV       number    12
    ctaPaddingH       number    30
-   ctaAlign          enum      center  (left, center, right)
-   ctaMarginTop      number    20
+   ctaMarginTop      number    10
 
    ── Mobile ──────────────────────────────────────────
    mobileStack       boolean   true
@@ -160,6 +159,7 @@
                 </td>
               </tr>
 
+              {% if params.showTitle %}
               <tr>
                 <td style="padding: {{ params.titlePaddingTop }}px 0 0 0; text-align: {{ params.titleAlign }}; font-family: {{ params.titleFontFamily }}; font-size: {{ params.titleFontSize }}px; line-height: {{ params.titleLineHeight }}; color: {{ params.titleColor }}; font-weight: {{ params.titleFontWeight }}; mso-line-height-rule: exactly;">
                   {% if params.linkEnabled %}
@@ -169,11 +169,26 @@
                   {% endif %}
                 </td>
               </tr>
+              {% endif %}
 
               {% if params.showPrice %}
               <tr>
                 <td style="padding: {{ params.pricePaddingTop }}px 0 0 0; text-align: {{ params.priceAlign }}; font-family: {{ params.priceFontFamily }}; font-size: {{ params.priceFontSize }}px; line-height: {{ params.priceLineHeight }}; color: {{ params.priceColor }}; font-weight: {{ params.priceFontWeight }}; mso-line-height-rule: exactly;">
                   {{ params.pricePrefix }}{{ item.price | default('') }}
+                </td>
+              </tr>
+              {% endif %}
+
+              {% if params.showCta %}
+              <tr>
+                <td style="padding: {{ params.ctaMarginTop }}px 0 0 0;">
+                  <table width="100%" cellpadding="0" cellspacing="0" border="0" role="presentation">
+                    <tr>
+                      <td align="center" style="background-color: {{ params.ctaBgColor }}; border: {{ params.ctaBorderWidth }}px solid {{ params.ctaBorderColor }}; border-radius: {{ params.ctaBorderRadius }}px; mso-padding-alt: {{ params.ctaPaddingV }}px {{ params.ctaPaddingH }}px;">
+                        <a href="{{ item.url | default('#') }}" target="_blank" style="display: block; font-family: {{ params.ctaFontFamily }}; font-size: {{ params.ctaFontSize }}px; font-weight: {{ params.ctaFontWeight }}; color: {{ params.ctaTextColor }}; text-decoration: none; text-align: center; padding: {{ params.ctaPaddingV }}px 0; line-height: 1; mso-line-height-rule: exactly;">{{ params.ctaText }}</a>
+                      </td>
+                    </tr>
+                  </table>
                 </td>
               </tr>
               {% endif %}
@@ -193,20 +208,6 @@
         {% else %}
         {# No recommendations returned — render nothing #}
         {% endfor %}
-
-        {% if params.showCta %}
-        <tr>
-          <td {% if params.productsPerRow > 1 %}colspan="{{ params.productsPerRow }}"{% endif %} style="padding: {{ params.ctaMarginTop }}px {{ halfGap }}px 0 {{ halfGap }}px;">
-            <table width="100%" cellpadding="0" cellspacing="0" border="0" role="presentation">
-              <tr>
-                <td align="center" style="background-color: {{ params.ctaBgColor }}; border: {{ params.ctaBorderWidth }}px solid {{ params.ctaBorderColor }}; border-radius: {{ params.ctaBorderRadius }}px; mso-padding-alt: {{ params.ctaPaddingV }}px {{ params.ctaPaddingH }}px;">
-                  <a href="{{ params.ctaUrl }}" target="_blank" style="display: block; font-family: {{ params.ctaFontFamily }}; font-size: {{ params.ctaFontSize }}px; font-weight: {{ params.ctaFontWeight }}; color: {{ params.ctaTextColor }}; text-decoration: none; text-align: center; padding: {{ params.ctaPaddingV }}px 0; line-height: 1; mso-line-height-rule: exactly;">{{ params.ctaText }}</a>
-                </td>
-              </tr>
-            </table>
-          </td>
-        </tr>
-        {% endif %}
 
       </table>
 
