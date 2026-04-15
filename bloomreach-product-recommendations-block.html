@@ -90,9 +90,16 @@
    =========================================================== #}
 
 
-{# --- Computed helpers --- #}
-{% set cellWidth = (100 / params.productsPerRow)|round(2) %}
-{% set halfGap = (params.cardGap / 2)|round|int %}
+{# --- Computed helpers (cast params to int for safety) --- #}
+{% set perRow = params.productsPerRow | int %}
+{% set cellWidth = (100 / perRow) | round(2) %}
+{% set halfGap = (params.cardGap | int / 2) | round | int %}
+
+
+{# --- Fetch recommendations and batch into rows --- #}
+{% set item = {} %}
+{% set recoItems = recommendations('699f134bffe1f2b21aff1773', size=params.productCount | int, fill_with_random=params.fillWithRandom) | default([]) | list %}
+{% set rows = recoItems | batch(perRow) | list %}
 
 
 {# --- Mobile responsive styles --- #}
@@ -136,14 +143,12 @@
         {# --- Product grid ---
              To change the recommendation engine, replace the ID string below.
              Bloomreach requires this to be a hardcoded constant.
-             Pre-defining item prevents the "values are possibly undefined" error. #}
-        {% set item = {} %}
-        {% for item in recommendations('699f134bffe1f2b21aff1773', size=params.productCount, fill_with_random=params.fillWithRandom) %}
 
-          {% if loop.index0 % params.productsPerRow == 0 %}
+             Uses batch() to group products into rows, avoiding modulo
+             arithmetic which can fail when params arrive as strings. #}
+        {% for row in rows %}
         <tr>
-          {% endif %}
-
+          {% for item in row %}
           <td class="reco-product-cell" width="{{ cellWidth }}%" valign="top" style="padding: {{ halfGap }}px;">
 
             <table width="100%" cellpadding="0" cellspacing="0" border="0" role="presentation">
@@ -195,18 +200,16 @@
             </table>
 
           </td>
+          {% endfor %}
 
-          {% if loop.index0 % params.productsPerRow == params.productsPerRow - 1 or loop.last %}
-            {% if loop.last and loop.index0 % params.productsPerRow != params.productsPerRow - 1 %}
-              {% for _ in range(params.productsPerRow - 1 - (loop.index0 % params.productsPerRow)) %}
+          {# Fill trailing empty cells if the last row is incomplete #}
+          {% set rowLen = row | length %}
+          {% if rowLen < perRow %}
+            {% for _ in range(perRow - rowLen) %}
           <td class="reco-empty-cell" width="{{ cellWidth }}%" style="padding: {{ halfGap }}px;">&nbsp;</td>
-              {% endfor %}
-            {% endif %}
-        </tr>
+            {% endfor %}
           {% endif %}
-
-        {% else %}
-        {# No recommendations returned — render nothing #}
+        </tr>
         {% endfor %}
 
       </table>
