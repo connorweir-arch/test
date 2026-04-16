@@ -146,7 +146,9 @@
       <table class="reco-grid-table" width="100%" cellpadding="0" cellspacing="0" border="0" role="presentation" style="max-width: {{ params.blockMaxWidth }}px; margin: 0 auto;">
 
         {# --- Fetch a larger pool so we can filter & re-sort before truncating --- #}
-        {% set recoPool = recommendations('699f134bffe1f2b21aff1773', size=params.recoPoolSize, fill_with_random=params.fillWithRandom) | default([]) %}
+        {% set poolSize = params.recoPoolSize | default(50, true) | int %}
+        {% set recoRaw = recommendations('699f134bffe1f2b21aff1773', size=poolSize, fill_with_random=params.fillWithRandom) %}
+        {% set recoPool = recoRaw if recoRaw is iterable and recoRaw is not string and recoRaw is not mapping else [] %}
 
         {# --- Optional category filters ---
              When a filter param is left empty the condition is skipped,
@@ -176,10 +178,10 @@
         {% set prefCat2Agg1 = params.sortCat2Agg1 | default('', true) %}
         {% set prefCat2Agg2 = params.sortCat2Agg2 | default('', true) %}
 
-        {% set pref1 = aggregates[prefCat1Agg1] | default('', true) if prefCat1Agg1 != '' else '' %}
-        {% set pref2 = aggregates[prefCat1Agg2] | default('', true) if prefCat1Agg2 != '' else '' %}
-        {% set pref3 = aggregates[prefCat2Agg1] | default('', true) if prefCat2Agg1 != '' else '' %}
-        {% set pref4 = aggregates[prefCat2Agg2] | default('', true) if prefCat2Agg2 != '' else '' %}
+        {% set pref1 = aggregates[prefCat1Agg1] | default('', true) | string if prefCat1Agg1 != '' else '' %}
+        {% set pref2 = aggregates[prefCat1Agg2] | default('', true) | string if prefCat1Agg2 != '' else '' %}
+        {% set pref3 = aggregates[prefCat2Agg1] | default('', true) | string if prefCat2Agg1 != '' else '' %}
+        {% set pref4 = aggregates[prefCat2Agg2] | default('', true) | string if prefCat2Agg2 != '' else '' %}
 
         {% set tier1 = [] %}
         {% set tier2 = [] %}
@@ -225,7 +227,8 @@
         {% set sorted = tier1 + tier2 + tier3 + tier4 + tierRest %}
 
         {# --- Truncate to the requested product count --- #}
-        {% set finalItems = sorted[:params.productCount] %}
+        {% set displayCount = params.productCount | default(2, true) | int %}
+        {% set finalItems = sorted[:displayCount] %}
 
         {# --- Product grid ---
              To change the recommendation engine, replace the ID string below.
