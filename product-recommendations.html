@@ -26,6 +26,17 @@
    ── Recommendation ──────────────────────────────────
    productCount      number    2
    fillWithRandom    boolean   true
+   recoPoolSize      number    50
+
+   ── Filtering ───────────────────────────────────────
+   filterCategory1   string    (empty)
+   filterCategory2   string    (empty)
+
+   ── Sorting (customer preference) ────────────────────
+   sortCat1Agg1      string    (empty)  Aggregate ID — highest-priority Category_level_1 preference
+   sortCat1Agg2      string    (empty)  Aggregate ID — second-priority Category_level_1 preference
+   sortCat2Agg1      string    (empty)  Aggregate ID — highest-priority Category_level_2 preference
+   sortCat2Agg2      string    (empty)  Aggregate ID — second-priority Category_level_2 preference
 
    ── Layout ──────────────────────────────────────────
    productsPerRow    number    2
@@ -134,12 +145,92 @@
 
       <table class="reco-grid-table" width="100%" cellpadding="0" cellspacing="0" border="0" role="presentation" style="max-width: {{ params.blockMaxWidth }}px; margin: 0 auto;">
 
+        {# --- Fetch a larger pool so we can filter & re-sort before truncating --- #}
+        {% set recoPool = recommendations('699f134bffe1f2b21aff1773', size=params.recoPoolSize, fill_with_random=params.fillWithRandom) | default([]) %}
+
+        {# --- Optional category filters ---
+             When a filter param is left empty the condition is skipped,
+             so all items pass through. Both filters can be active at once. #}
+        {% set filtered = [] %}
+        {% for item in recoPool %}
+          {% if (not params.filterCategory1 or params.filterCategory1 == '' or item.Category_level_1 == params.filterCategory1) and (not params.filterCategory2 or params.filterCategory2 == '' or item.Category_level_2 == params.filterCategory2) %}
+            {% append item to filtered %}
+          {% endif %}
+        {% endfor %}
+
+        {# --- Customer-preference re-sorting ---
+             4 priority tiers built from customer aggregates.
+             Each aggregate returns the customer's preferred category value
+             (e.g. most_common Category_level_1 from purchase events).
+             Items matching the highest-priority tier appear first;
+             unmatched items keep their original recommendation order.
+             When an aggregate resolves to none the tier is skipped.
+
+             Tier 1 (highest) : Category_level_1 == aggregate sortCat1Agg1
+             Tier 2           : Category_level_1 == aggregate sortCat1Agg2
+             Tier 3           : Category_level_2 == aggregate sortCat2Agg1
+             Tier 4 (lowest)  : Category_level_2 == aggregate sortCat2Agg2
+             Remaining items keep their original reco engine order. #}
+        {% set prefCat1Agg1 = params.sortCat1Agg1 | default('', true) %}
+        {% set prefCat1Agg2 = params.sortCat1Agg2 | default('', true) %}
+        {% set prefCat2Agg1 = params.sortCat2Agg1 | default('', true) %}
+        {% set prefCat2Agg2 = params.sortCat2Agg2 | default('', true) %}
+
+        {% set pref1 = aggregates[prefCat1Agg1] | default('', true) if prefCat1Agg1 != '' else '' %}
+        {% set pref2 = aggregates[prefCat1Agg2] | default('', true) if prefCat1Agg2 != '' else '' %}
+        {% set pref3 = aggregates[prefCat2Agg1] | default('', true) if prefCat2Agg1 != '' else '' %}
+        {% set pref4 = aggregates[prefCat2Agg2] | default('', true) if prefCat2Agg2 != '' else '' %}
+
+        {% set tier1 = [] %}
+        {% set tier2 = [] %}
+        {% set tier3 = [] %}
+        {% set tier4 = [] %}
+        {% set tierRest = [] %}
+        {% set placed = [] %}
+
+        {% for item in filtered %}
+          {% if pref1 and pref1 != '' and item.Category_level_1 == pref1 %}
+            {% append item to tier1 %}
+            {% append loop.index0 to placed %}
+          {% endif %}
+        {% endfor %}
+
+        {% for item in filtered %}
+          {% if loop.index0 not in placed and pref2 and pref2 != '' and item.Category_level_1 == pref2 %}
+            {% append item to tier2 %}
+            {% append loop.index0 to placed %}
+          {% endif %}
+        {% endfor %}
+
+        {% for item in filtered %}
+          {% if loop.index0 not in placed and pref3 and pref3 != '' and item.Category_level_2 == pref3 %}
+            {% append item to tier3 %}
+            {% append loop.index0 to placed %}
+          {% endif %}
+        {% endfor %}
+
+        {% for item in filtered %}
+          {% if loop.index0 not in placed and pref4 and pref4 != '' and item.Category_level_2 == pref4 %}
+            {% append item to tier4 %}
+            {% append loop.index0 to placed %}
+          {% endif %}
+        {% endfor %}
+
+        {% for item in filtered %}
+          {% if loop.index0 not in placed %}
+            {% append item to tierRest %}
+          {% endif %}
+        {% endfor %}
+
+        {% set sorted = tier1 + tier2 + tier3 + tier4 + tierRest %}
+
+        {# --- Truncate to the requested product count --- #}
+        {% set finalItems = sorted[:params.productCount] %}
+
         {# --- Product grid ---
              To change the recommendation engine, replace the ID string below.
              Bloomreach requires this to be a hardcoded constant. #}
-             {% set item = [] %}
-			{% set recoItems = recommendations('699f134bffe1f2b21aff1773', size=params.productCount, fill_with_random=params.fillWithRandom) | default([]) %}
-			{% for item in recoItems %}
+        {% for item in finalItems %}
 
           {% if loop.index0 % params.productsPerRow == 0 %}
         <tr>
