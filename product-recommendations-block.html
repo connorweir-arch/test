@@ -1,0 +1,220 @@
+{# ===========================================================
+   BLOOMREACH PRODUCT RECOMMENDATIONS BLOCK
+   
+   Paste into an HTML block code editor and click
+   "Load parameters from the code editor" to populate
+   the parameters panel from all {{ params.xxx }} refs.
+
+   After loading, set each parameter's TYPE, DEFAULT,
+   CATEGORY, and TOOLTIP in the parameters editor as
+   listed in the guide below.
+
+   RECOMMENDATION ENGINE ID
+   Bloomreach requires the recommendationId to be a
+   constant string in Jinja. Change the hardcoded ID
+   on the recommendations() line below if you need a
+   different engine.
+   =========================================================== #}
+
+
+{# ===========================================================
+   PARAMETER SETUP GUIDE
+   
+   After clicking "Load parameters from code editor",
+   configure each parameter in the UI as follows:
+
+   ── Recommendation ──────────────────────────────────
+   productCount      number    2
+   fillWithRandom    boolean   true
+
+   ── Layout ──────────────────────────────────────────
+   productsPerRow    number    2
+   blockMaxWidth     number    600
+   blockBgColor      color     #ffffff
+   blockPaddingTop   number    20
+   blockPaddingBottom number   20
+   blockPaddingLeft  number    10
+   blockPaddingRight number    10
+
+   ── Product Card ────────────────────────────────────
+   cardBgColor       color     #ede0d4
+   cardBorderRadius  number    12
+   cardPadding       number    15
+   cardGap           number    16
+
+   ── Product Image ───────────────────────────────────
+   imageBorderRadius number    8
+
+   ── Product Title ───────────────────────────────────
+   showTitle         boolean   true
+   titleFontFamily   string    Arial, Helvetica, sans-serif
+   titleFontSize     number    13
+   titleColor        color     #333333
+   titleFontWeight   string    normal
+   titleAlign        enum      center  (left, center, right)
+   titlePaddingTop   number    10
+   titleLineHeight   string    1.4
+
+   ── Product Price ───────────────────────────────────
+   showPrice         boolean   false
+   priceFontFamily   string    Arial, Helvetica, sans-serif
+   priceFontSize     number    14
+   priceColor        color     #333333
+   priceFontWeight   string    bold
+   priceAlign        enum      center  (left, center, right)
+   pricePrefix       string    £
+   pricePaddingTop   number    5
+   priceLineHeight   string    1.4
+
+   ── CTA Button ──────────────────────────────────────
+   showCta           boolean   true
+   ctaText           string    Get reunited
+   ctaUrl            string    https://jellycat.com
+   ctaBgColor        color     #ffffff
+   ctaTextColor      color     #d4483b
+   ctaBorderColor    color     #d4483b
+   ctaBorderWidth    number    1
+   ctaBorderRadius   number    25
+   ctaFontSize       number    14
+   ctaFontFamily     string    Arial, Helvetica, sans-serif
+   ctaFontWeight     string    normal
+   ctaPaddingV       number    12
+   ctaPaddingH       number    30
+   ctaAlign          enum      center  (left, center, right)
+   ctaMarginTop      number    20
+
+   ── Mobile ──────────────────────────────────────────
+   mobileStack       boolean   true
+   mobileBreakpoint  number    480
+
+   ── Product Link ────────────────────────────────────
+   linkEnabled       boolean   true
+   =========================================================== #}
+
+
+{# --- Computed helpers --- #}
+{% set cellWidth = (100 / params.productsPerRow)|round(2) %}
+{% set halfGap = (params.cardGap / 2)|round|int %}
+
+
+{# --- Mobile responsive styles --- #}
+{% if params.mobileStack %}
+<style type="text/css">
+  @media only screen and (max-width: {{ params.mobileBreakpoint }}px) {
+    .reco-grid-table {
+      width: 100% !important;
+    }
+    .reco-product-cell {
+      display: block !important;
+      width: 100% !important;
+      padding-left: 0 !important;
+      padding-right: 0 !important;
+      padding-bottom: {{ params.cardGap }}px !important;
+    }
+    .reco-empty-cell {
+      display: none !important;
+      width: 0 !important;
+      height: 0 !important;
+      padding: 0 !important;
+      font-size: 0 !important;
+      line-height: 0 !important;
+    }
+  }
+</style>
+{% endif %}
+
+
+{# --- Main block --- #}
+<table width="100%" cellpadding="0" cellspacing="0" border="0" role="presentation" style="background-color: {{ params.blockBgColor }};">
+  <tr>
+    <td align="center" style="padding: {{ params.blockPaddingTop }}px {{ params.blockPaddingRight }}px {{ params.blockPaddingBottom }}px {{ params.blockPaddingLeft }}px;">
+
+      <!--[if mso]>
+      <table width="{{ params.blockMaxWidth }}" cellpadding="0" cellspacing="0" border="0" role="presentation" align="center"><tr><td>
+      <![endif]-->
+
+      <table class="reco-grid-table" width="100%" cellpadding="0" cellspacing="0" border="0" role="presentation" style="max-width: {{ params.blockMaxWidth }}px; margin: 0 auto;">
+
+        {# --- Product grid ---
+             To change the recommendation engine, replace the ID string below.
+             Bloomreach requires this to be a hardcoded constant. #}
+        {% set recoItems = recommendations('699f134bffe1f2b21aff1773', size=params.productCount, fill_with_random=params.fillWithRandom) | default([]) %}
+        {% for item in recoItems %}
+
+          {% if loop.index0 % params.productsPerRow == 0 %}
+        <tr>
+          {% endif %}
+
+          <td class="reco-product-cell" width="{{ cellWidth }}%" valign="top" style="padding: {{ halfGap }}px;">
+
+            <table width="100%" cellpadding="0" cellspacing="0" border="0" role="presentation">
+              <tr>
+                <td style="background-color: {{ params.cardBgColor }}; border-radius: {{ params.cardBorderRadius }}px; padding: {{ params.cardPadding }}px;">
+                  {% if params.linkEnabled %}
+                  <a href="{{ item.url }}" target="_blank" style="display: block; text-decoration: none;">
+                  {% endif %}
+                    <img src="{{ item.image }}" alt="{{ item.title }}" width="100%" style="display: block; width: 100%; height: auto; border: 0; border-radius: {{ params.imageBorderRadius }}px;" />
+                  {% if params.linkEnabled %}
+                  </a>
+                  {% endif %}
+                </td>
+              </tr>
+
+              {% if params.showTitle %}
+              <tr>
+                <td style="padding: {{ params.titlePaddingTop }}px 0 0 0; text-align: {{ params.titleAlign }}; font-family: {{ params.titleFontFamily }}; font-size: {{ params.titleFontSize }}px; line-height: {{ params.titleLineHeight }}; color: {{ params.titleColor }}; font-weight: {{ params.titleFontWeight }}; mso-line-height-rule: exactly;">
+                  {% if params.linkEnabled %}
+                  <a href="{{ item.url }}" target="_blank" style="text-decoration: none; color: {{ params.titleColor }}; font-weight: {{ params.titleFontWeight }};">{{ item.title }}</a>
+                  {% else %}
+                  {{ item.title }}
+                  {% endif %}
+                </td>
+              </tr>
+              {% endif %}
+
+              {% if params.showPrice %}
+              <tr>
+                <td style="padding: {{ params.pricePaddingTop }}px 0 0 0; text-align: {{ params.priceAlign }}; font-family: {{ params.priceFontFamily }}; font-size: {{ params.priceFontSize }}px; line-height: {{ params.priceLineHeight }}; color: {{ params.priceColor }}; font-weight: {{ params.priceFontWeight }}; mso-line-height-rule: exactly;">
+                  {{ params.pricePrefix }}{{ item.price }}
+                </td>
+              </tr>
+              {% endif %}
+
+              {% if params.showCta %}
+              <tr>
+                <td style="padding: {{ params.ctaMarginTop }}px 0 0 0;">
+                  <table width="100%" cellpadding="0" cellspacing="0" border="0" role="presentation">
+                    <tr>
+                      <td align="center" style="background-color: {{ params.ctaBgColor }}; border: {{ params.ctaBorderWidth }}px solid {{ params.ctaBorderColor }}; border-radius: {{ params.ctaBorderRadius }}px; mso-padding-alt: {{ params.ctaPaddingV }}px {{ params.ctaPaddingH }}px;">
+                        <a href="{{ item.url | default('#') }}" target="_blank" style="display: block; font-family: {{ params.ctaFontFamily }}; font-size: {{ params.ctaFontSize }}px; font-weight: {{ params.ctaFontWeight }}; color: {{ params.ctaTextColor }}; text-decoration: none; text-align: center; padding: {{ params.ctaPaddingV }}px 0; line-height: 1; mso-line-height-rule: exactly;">{{ params.ctaText }}</a>
+                      </td>
+                    </tr>
+                  </table>
+                </td>
+              </tr>
+              {% endif %}
+
+            </table>
+
+          </td>
+
+          {% if loop.index0 % params.productsPerRow == params.productsPerRow - 1 or loop.last %}
+            {% if loop.last and loop.index0 % params.productsPerRow != params.productsPerRow - 1 %}
+              {% for _ in range(params.productsPerRow - 1 - (loop.index0 % params.productsPerRow)) %}
+          <td class="reco-empty-cell" width="{{ cellWidth }}%" style="padding: {{ halfGap }}px;">&nbsp;</td>
+              {% endfor %}
+            {% endif %}
+        </tr>
+          {% endif %}
+
+        {% endfor %}
+
+      </table>
+
+      <!--[if mso]>
+      </td></tr></table>
+      <![endif]-->
+
+    </td>
+  </tr>
+</table>
