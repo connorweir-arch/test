@@ -56,6 +56,17 @@
    ── Product Image ───────────────────────────────────
    imageBorderRadius number    8
 
+   ── Custom Fonts (available in supported inboxes) ────
+   The following brand fonts are embedded via @font-face
+   and can be used anywhere a *FontFamily param is set
+   (fallback: sans-serif in inboxes that strip @font-face,
+   e.g. Gmail & Outlook on Windows):
+     'Plus Jakarta Sans Normal',   sans-serif
+     'Plus Jakarta Sans Light',    sans-serif
+     'Plus Jakarta Sans Medium',   sans-serif
+     'Plus Jakarta Sans Semibold', sans-serif
+     'Plus Jakarta Sans Bold',     sans-serif
+
    ── Product Title ───────────────────────────────────
    showTitle         boolean   true
    titleFontFamily   string    Arial, Helvetica, sans-serif
@@ -114,6 +125,68 @@
 {# --- Computed helpers --- #}
 {% set cellWidth = (100 / productsPerRow) | round(2) %}
 {% set halfGap   = (cardGapInt / 2) | round | int %}
+
+
+{# --- Custom web fonts ---
+       Registered with @font-face so supported inboxes (Apple Mail,
+       iOS Mail, Samsung Mail, Outlook for Mac, Thunderbird, etc.)
+       can render the brand typeface. Inboxes that strip @font-face
+       (most notably Gmail and Outlook on Windows) will fall back
+       to the generic sans-serif declared on each element.
+
+       All five weights are exposed as independent family names so
+       they can be referenced directly from the font-family params
+       (e.g. titleFontFamily = "'Plus Jakarta Sans Bold', sans-serif"). --- #}
+<style type="text/css">
+  @font-face {
+    font-family: 'Plus Jakarta Sans Normal';
+    font-style: normal;
+    font-weight: 400;
+    font-display: swap;
+    src: url('https://brxcdn.com/uk1-app-storage/c44b0010-ed15-11ef-8a10-c682a393d09b/media/original/11d00caa-3d6a-11f0-a969-2af14a1d255b') format('woff2'),
+         url('https://brxcdn.com/uk1-app-storage/c44b0010-ed15-11ef-8a10-c682a393d09b/media/original/11d00caa-3d6a-11f0-a969-2af14a1d255b') format('woff'),
+         url('https://brxcdn.com/uk1-app-storage/c44b0010-ed15-11ef-8a10-c682a393d09b/media/original/11d00caa-3d6a-11f0-a969-2af14a1d255b') format('truetype');
+  }
+  @font-face {
+    font-family: 'Plus Jakarta Sans Light';
+    font-style: normal;
+    font-weight: 300;
+    font-display: swap;
+    src: url('https://brxcdn.com/uk1-app-storage/c44b0010-ed15-11ef-8a10-c682a393d09b/media/original/11d00caa-3d6a-11f0-a969-2af14a1d255b') format('woff2'),
+         url('https://brxcdn.com/uk1-app-storage/c44b0010-ed15-11ef-8a10-c682a393d09b/media/original/11d00caa-3d6a-11f0-a969-2af14a1d255b') format('woff'),
+         url('https://brxcdn.com/uk1-app-storage/c44b0010-ed15-11ef-8a10-c682a393d09b/media/original/11d00caa-3d6a-11f0-a969-2af14a1d255b') format('truetype');
+  }
+  @font-face {
+    font-family: 'Plus Jakarta Sans Medium';
+    font-style: normal;
+    font-weight: 500;
+    font-display: swap;
+    src: url('https://brxcdn.com/uk1-app-storage/c44b0010-ed15-11ef-8a10-c682a393d09b/media/original/11d00caa-3d6a-11f0-a969-2af14a1d255b') format('woff2'),
+         url('https://brxcdn.com/uk1-app-storage/c44b0010-ed15-11ef-8a10-c682a393d09b/media/original/11d00caa-3d6a-11f0-a969-2af14a1d255b') format('woff'),
+         url('https://brxcdn.com/uk1-app-storage/c44b0010-ed15-11ef-8a10-c682a393d09b/media/original/11d00caa-3d6a-11f0-a969-2af14a1d255b') format('truetype');
+  }
+  @font-face {
+    font-family: 'Plus Jakarta Sans Semibold';
+    font-style: normal;
+    font-weight: 600;
+    font-display: swap;
+    src: url('https://brxcdn.com/uk1-app-storage/c44b0010-ed15-11ef-8a10-c682a393d09b/media/original/11d00caa-3d6a-11f0-a969-2af14a1d255b') format('woff2'),
+         url('https://brxcdn.com/uk1-app-storage/c44b0010-ed15-11ef-8a10-c682a393d09b/media/original/11d00caa-3d6a-11f0-a969-2af14a1d255b') format('woff'),
+         url('https://brxcdn.com/uk1-app-storage/c44b0010-ed15-11ef-8a10-c682a393d09b/media/original/11d00caa-3d6a-11f0-a969-2af14a1d255b') format('truetype');
+  }
+  @font-face {
+    font-family: 'Plus Jakarta Sans Bold';
+    font-style: normal;
+    font-weight: 700;
+    font-display: swap;
+    src: url('https://brxcdn.com/uk1-app-storage/c44b0010-ed15-11ef-8a10-c682a393d09b/media/original/11d00caa-3d6a-11f0-a969-2af14a1d255b') format('woff2'),
+         url('https://brxcdn.com/uk1-app-storage/c44b0010-ed15-11ef-8a10-c682a393d09b/media/original/11d00caa-3d6a-11f0-a969-2af14a1d255b') format('woff'),
+         url('https://brxcdn.com/uk1-app-storage/c44b0010-ed15-11ef-8a10-c682a393d09b/media/original/11d00caa-3d6a-11f0-a969-2af14a1d255b') format('truetype');
+  }
+</style>
+<!--[if !mso]><!-->
+<link rel="preconnect" href="https://brxcdn.com" crossorigin>
+<!--<![endif]-->
 
 
 {# --- Mobile responsive styles --- #}
