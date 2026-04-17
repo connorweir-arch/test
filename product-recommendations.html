@@ -350,7 +350,17 @@
           {% endif %}
         {% endfor %}
 
-        {% set rankedItems = tier1 + tier2 + tier3 + tier4 + tierRest %}
+        {# --- Concatenate tiers into one ranked list.
+               Bloomreach's Jinja dialect treats `+` as a strictly
+               numeric operator, so `tier1 + tier2 + ...` raises
+               "Numeric operator + is allowed on numbers only".
+               We build the combined list by appending instead. --- #}
+        {% set rankedItems = [] %}
+        {% for item in tier1 %}{% append item to rankedItems %}{% endfor %}
+        {% for item in tier2 %}{% append item to rankedItems %}{% endfor %}
+        {% for item in tier3 %}{% append item to rankedItems %}{% endfor %}
+        {% for item in tier4 %}{% append item to rankedItems %}{% endfor %}
+        {% for item in tierRest %}{% append item to rankedItems %}{% endfor %}
 
         {# --- Truncate to the requested product count.
                Built via explicit loop instead of slice notation to
