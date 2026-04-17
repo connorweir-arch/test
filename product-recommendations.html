@@ -160,10 +160,28 @@
              Tier 4 (lowest)  : Category_level_2 == aggregate pref4
              Remaining items keep their original reco engine order. #}
 
-        {% set pref1 = aggregates['699de5d3269674d63640b237'] | default('', true)  %}
-        {% set pref2 = aggregates['699de5d0aafd3527a7a14ccc'] | default('', true)  %}
-        {% set pref3 = aggregates['699de5d209c6819bb2bf270b'] | default('', true)  %}
-        {% set pref4 = aggregates['699de58a09c6819bb2bf2704'] | default('', true)  %}
+        {# --- Safely load aggregate preferences ---
+             aggregates may not be available in all contexts (e.g. preview).
+             Each aggregate value is loaded into a single-element list so we
+             can read it back outside the if-block via [0] indexing. #}
+        {% set agg1 = [''] %}
+        {% set agg2 = [''] %}
+        {% set agg3 = [''] %}
+        {% set agg4 = [''] %}
+        {%- if aggregates is defined and aggregates is mapping -%}
+          {%- if aggregates['699de5d3269674d63640b237'] is defined and aggregates['699de5d3269674d63640b237'] is not none -%}
+            {%- set agg1 = [aggregates['699de5d3269674d63640b237']] -%}
+          {%- endif -%}
+          {%- if aggregates['699de5d0aafd3527a7a14ccc'] is defined and aggregates['699de5d0aafd3527a7a14ccc'] is not none -%}
+            {%- set agg2 = [aggregates['699de5d0aafd3527a7a14ccc']] -%}
+          {%- endif -%}
+          {%- if aggregates['699de5d209c6819bb2bf270b'] is defined and aggregates['699de5d209c6819bb2bf270b'] is not none -%}
+            {%- set agg3 = [aggregates['699de5d209c6819bb2bf270b']] -%}
+          {%- endif -%}
+          {%- if aggregates['699de58a09c6819bb2bf2704'] is defined and aggregates['699de58a09c6819bb2bf2704'] is not none -%}
+            {%- set agg4 = [aggregates['699de58a09c6819bb2bf2704']] -%}
+          {%- endif -%}
+        {%- endif -%}
 
         {% set tier1 = [] %}
         {% set tier2 = [] %}
@@ -173,28 +191,28 @@
         {% set placed = [] %}
 
         {% for item in filtered %}
-          {% if pref1 and pref1 != '' and item.Category_level_1 == pref1 %}
+          {% if agg1[0] and agg1[0] != '' and item.Category_level_1 == agg1[0] %}
             {% append item to tier1 %}
             {% append loop.index0 to placed %}
           {% endif %}
         {% endfor %}
 
         {% for item in filtered %}
-          {% if loop.index0 not in placed and pref2 and pref2 != '' and item.Category_level_1 == pref2 %}
+          {% if loop.index0 not in placed and agg2[0] and agg2[0] != '' and item.Category_level_1 == agg2[0] %}
             {% append item to tier2 %}
             {% append loop.index0 to placed %}
           {% endif %}
         {% endfor %}
 
         {% for item in filtered %}
-          {% if loop.index0 not in placed and pref3 and pref3 != '' and item.Category_level_2 == pref3 %}
+          {% if loop.index0 not in placed and agg3[0] and agg3[0] != '' and item.Category_level_2 == agg3[0] %}
             {% append item to tier3 %}
             {% append loop.index0 to placed %}
           {% endif %}
         {% endfor %}
 
         {% for item in filtered %}
-          {% if loop.index0 not in placed and pref4 and pref4 != '' and item.Category_level_2 == pref4 %}
+          {% if loop.index0 not in placed and agg4[0] and agg4[0] != '' and item.Category_level_2 == agg4[0] %}
             {% append item to tier4 %}
             {% append loop.index0 to placed %}
           {% endif %}
