@@ -100,6 +100,25 @@
 
    ── Product Link ────────────────────────────────────
    linkEnabled       boolean   true
+
+   ── Custom Web Fonts ────────────────────────────────
+   loadCustomFonts   boolean   true
+       When enabled, the block declares @font-face rules for the
+       "Plus Jakarta Sans" family (Light / Normal / Medium /
+       Semibold / Bold). Inboxes that support web fonts
+       (Apple Mail, iOS Mail, Samsung Mail, some Android
+       clients) will download and render them; every other
+       client falls back to the generic sans-serif specified
+       in the titleFontFamily / priceFontFamily / ctaFontFamily
+       params.
+
+       To use a weight, set the relevant Font Family param to
+       one of:
+         'Plus Jakarta Sans Light', sans-serif
+         'Plus Jakarta Sans Normal', sans-serif
+         'Plus Jakarta Sans Medium', sans-serif
+         'Plus Jakarta Sans Semibold', sans-serif
+         'Plus Jakarta Sans Bold', sans-serif
    =========================================================== #}
 
 
@@ -114,6 +133,63 @@
 {# --- Computed helpers --- #}
 {% set cellWidth = (100 / productsPerRow) | round(2) %}
 {% set halfGap   = (cardGapInt / 2) | round | int %}
+
+
+{# --- Custom web fonts (Plus Jakarta Sans) ---
+     Email clients that honour <style> blocks and web fonts
+     (Apple Mail, iOS Mail, Samsung Mail, Thunderbird, some
+     Android clients) will download and render these faces.
+     Clients that don't support web fonts (Gmail, Outlook,
+     Yahoo, etc.) silently ignore the @font-face declarations
+     and fall back to the generic sans-serif supplied in the
+     titleFontFamily / priceFontFamily / ctaFontFamily params. --- #}
+{% if params.loadCustomFonts %}
+<style type="text/css">
+  @font-face {
+    font-family: 'Plus Jakarta Sans Light';
+    font-style: normal;
+    font-weight: 300;
+    font-display: swap;
+    src: url('https://brxcdn.com/uk1-app-storage/c44b0010-ed15-11ef-8a10-c682a393d09b/media/original/11d00caa-3d6a-11f0-a969-2af14a1d255b') format('woff2'),
+         url('https://brxcdn.com/uk1-app-storage/c44b0010-ed15-11ef-8a10-c682a393d09b/media/original/11d00caa-3d6a-11f0-a969-2af14a1d255b') format('woff');
+  }
+  @font-face {
+    font-family: 'Plus Jakarta Sans Normal';
+    font-style: normal;
+    font-weight: 400;
+    font-display: swap;
+    src: url('https://brxcdn.com/uk1-app-storage/c44b0010-ed15-11ef-8a10-c682a393d09b/media/original/11d00caa-3d6a-11f0-a969-2af14a1d255b') format('woff2'),
+         url('https://brxcdn.com/uk1-app-storage/c44b0010-ed15-11ef-8a10-c682a393d09b/media/original/11d00caa-3d6a-11f0-a969-2af14a1d255b') format('woff');
+  }
+  @font-face {
+    font-family: 'Plus Jakarta Sans Medium';
+    font-style: normal;
+    font-weight: 500;
+    font-display: swap;
+    src: url('https://brxcdn.com/uk1-app-storage/c44b0010-ed15-11ef-8a10-c682a393d09b/media/original/11d00caa-3d6a-11f0-a969-2af14a1d255b') format('woff2'),
+         url('https://brxcdn.com/uk1-app-storage/c44b0010-ed15-11ef-8a10-c682a393d09b/media/original/11d00caa-3d6a-11f0-a969-2af14a1d255b') format('woff');
+  }
+  @font-face {
+    font-family: 'Plus Jakarta Sans Semibold';
+    font-style: normal;
+    font-weight: 600;
+    font-display: swap;
+    src: url('https://brxcdn.com/uk1-app-storage/c44b0010-ed15-11ef-8a10-c682a393d09b/media/original/11d00caa-3d6a-11f0-a969-2af14a1d255b') format('woff2'),
+         url('https://brxcdn.com/uk1-app-storage/c44b0010-ed15-11ef-8a10-c682a393d09b/media/original/11d00caa-3d6a-11f0-a969-2af14a1d255b') format('woff');
+  }
+  @font-face {
+    font-family: 'Plus Jakarta Sans Bold';
+    font-style: normal;
+    font-weight: 700;
+    font-display: swap;
+    src: url('https://brxcdn.com/uk1-app-storage/c44b0010-ed15-11ef-8a10-c682a393d09b/media/original/11d00caa-3d6a-11f0-a969-2af14a1d255b') format('woff2'),
+         url('https://brxcdn.com/uk1-app-storage/c44b0010-ed15-11ef-8a10-c682a393d09b/media/original/11d00caa-3d6a-11f0-a969-2af14a1d255b') format('woff');
+  }
+</style>
+<!--[if !mso]><!-->
+<link rel="preconnect" href="https://brxcdn.com" crossorigin />
+<!--<![endif]-->
+{% endif %}
 
 
 {# --- Mobile responsive styles --- #}
