@@ -224,11 +224,11 @@
           {% endif %}
         {% endfor %}
 
-        {% set sorted = tier1 + tier2 + tier3 + tier4 + tierRest %}
+        {% set rankedItems = tier1 + tier2 + tier3 + tier4 + tierRest %}
 
         {# --- Truncate to the requested product count --- #}
         {% set displayCount = params.productCount | default(2, true) | int %}
-        {% set finalItems = sorted[:displayCount] %}
+        {% set finalItems = rankedItems[:displayCount] %}
 
         {# --- Product grid ---
              To change the recommendation engine, replace the ID string below.
