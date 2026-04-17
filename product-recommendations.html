@@ -26,17 +26,6 @@
    ── Recommendation ──────────────────────────────────
    productCount      number    2
    fillWithRandom    boolean   true
-   recoPoolSize      number    50
-
-   ── Filtering ───────────────────────────────────────
-   filterCategory1   string    (empty)
-   filterCategory2   string    (empty)
-
-   ── Ranking (customer preference) ─────────────────────
-   rankCat1Agg1      string    (empty)  Aggregate ID — highest-priority Category_level_1 preference
-   rankCat1Agg2      string    (empty)  Aggregate ID — second-priority Category_level_1 preference
-   rankCat2Agg1      string    (empty)  Aggregate ID — highest-priority Category_level_2 preference
-   rankCat2Agg2      string    (empty)  Aggregate ID — second-priority Category_level_2 preference
 
    ── Layout ──────────────────────────────────────────
    productsPerRow    number    2
@@ -144,11 +133,8 @@
       <![endif]-->
 
       <table class="reco-grid-table" width="100%" cellpadding="0" cellspacing="0" border="0" role="presentation" style="max-width: {{ params.blockMaxWidth }}px; margin: 0 auto;">
-
-        {# --- Fetch a larger pool so we can filter & rank before truncating --- #}
-        {% set poolSize = params.recoPoolSize | default(50, true) | int %}
-        {% set recoRaw = recommendations('699f134bffe1f2b21aff1773', size=poolSize, fill_with_random=params.fillWithRandom) %}
-        {% set recoPool = recoRaw if recoRaw is iterable and recoRaw is not string and recoRaw is not mapping else [] %}
+		{# --- Fetch a larger pool so we can filter & rank before truncating --- #}
+        {% set recoPool = recommendations(params.recommendation, size=params.recoPoolSize, fill_with_random=params.fillWithRandom) %}
 
         {# --- Optional category filters ---
              When a filter param is left empty the condition is skipped,
@@ -168,20 +154,16 @@
              unmatched items keep their original recommendation order.
              When an aggregate resolves to none the tier is skipped.
 
-             Tier 1 (highest) : Category_level_1 == aggregate rankCat1Agg1
-             Tier 2           : Category_level_1 == aggregate rankCat1Agg2
-             Tier 3           : Category_level_2 == aggregate rankCat2Agg1
-             Tier 4 (lowest)  : Category_level_2 == aggregate rankCat2Agg2
+             Tier 1 (highest) : Category_level_1 == aggregate pref1
+             Tier 2           : Category_level_1 == aggregate pref2
+             Tier 3           : Category_level_2 == aggregate pref3
+             Tier 4 (lowest)  : Category_level_2 == aggregate pref4
              Remaining items keep their original reco engine order. #}
-        {% set prefCat1Agg1 = params.rankCat1Agg1 | default('', true) %}
-        {% set prefCat1Agg2 = params.rankCat1Agg2 | default('', true) %}
-        {% set prefCat2Agg1 = params.rankCat2Agg1 | default('', true) %}
-        {% set prefCat2Agg2 = params.rankCat2Agg2 | default('', true) %}
 
-        {% set pref1 = aggregates[prefCat1Agg1] | default('', true) | string if prefCat1Agg1 != '' else '' %}
-        {% set pref2 = aggregates[prefCat1Agg2] | default('', true) | string if prefCat1Agg2 != '' else '' %}
-        {% set pref3 = aggregates[prefCat2Agg1] | default('', true) | string if prefCat2Agg1 != '' else '' %}
-        {% set pref4 = aggregates[prefCat2Agg2] | default('', true) | string if prefCat2Agg2 != '' else '' %}
+        {% set pref1 = aggregates['699de5d3269674d63640b237'] | default('', true)  %}
+        {% set pref2 = aggregates['699de5d0aafd3527a7a14ccc'] | default('', true)  %}
+        {% set pref3 = aggregates['699de5d209c6819bb2bf270b'] | default('', true)  %}
+        {% set pref4 = aggregates['699de58a09c6819bb2bf2704'] | default('', true)  %}
 
         {% set tier1 = [] %}
         {% set tier2 = [] %}
@@ -227,13 +209,9 @@
         {% set rankedItems = tier1 + tier2 + tier3 + tier4 + tierRest %}
 
         {# --- Truncate to the requested product count --- #}
-        {% set displayCount = params.productCount | default(2, true) | int %}
-        {% set finalItems = rankedItems[:displayCount] %}
+        {% set finalItems = params.productCount %}
 
-        {# --- Product grid ---
-             To change the recommendation engine, replace the ID string below.
-             Bloomreach requires this to be a hardcoded constant. #}
-        {% for item in finalItems %}
+			{% for item in rankedItems[:finalItems] %}
 
           {% if loop.index0 % params.productsPerRow == 0 %}
         <tr>
@@ -273,7 +251,7 @@
                 </td>
               </tr>
               {% endif %}
-
+              
               {% if params.showCta %}
               <tr>
                 <td style="padding: {{ params.ctaMarginTop }}px 0 0 0;">
@@ -287,10 +265,10 @@
                 </td>
               </tr>
               {% endif %}
-
             </table>
 
           </td>
+          
 
           {% if loop.index0 % params.productsPerRow == params.productsPerRow - 1 or loop.last %}
             {% if loop.last and loop.index0 % params.productsPerRow != params.productsPerRow - 1 %}
