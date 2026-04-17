@@ -209,9 +209,9 @@
         {% set rankedItems = tier1 + tier2 + tier3 + tier4 + tierRest %}
 
         {# --- Truncate to the requested product count --- #}
-        {% set finalItems = params.productCount %}
+        {% set finalItems = rankedItems[:params.productCount] %}
 
-			{% for item in rankedItems[:finalItems] %}
+			{% for item in finalItems %}
 
           {% if loop.index0 % params.productsPerRow == 0 %}
         <tr>
