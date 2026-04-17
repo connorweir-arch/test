@@ -103,6 +103,79 @@
    =========================================================== #}
 
 
+{# ===========================================================
+   CUSTOM WEB FONTS — Plus Jakarta Sans family
+
+   The @font-face declarations below load the Plus Jakarta
+   Sans family hosted on the Bloomreach CDN. Mail clients
+   that support web fonts (Apple Mail, iOS Mail, Outlook
+   for Mac, Samsung Mail, etc.) will pick them up; clients
+   that do not (most notably Gmail web and Outlook on
+   Windows) will silently fall through to the `sans-serif`
+   fallback declared in each family stack.
+
+   Usage — in the parameters panel set any of these
+   CSS values as the font family for title / price / CTA:
+     'Plus Jakarta Sans Normal',   sans-serif
+     'Plus Jakarta Sans Light',    sans-serif
+     'Plus Jakarta Sans Medium',   sans-serif
+     'Plus Jakarta Sans Semibold', sans-serif
+     'Plus Jakarta Sans Bold',     sans-serif
+   =========================================================== #}
+<style type="text/css">
+  @font-face {
+    font-family: 'Plus Jakarta Sans Normal';
+    font-style: normal;
+    font-weight: 400;
+    font-display: swap;
+    src: url('https://brxcdn.com/uk1-app-storage/c44b0010-ed15-11ef-8a10-c682a393d09b/media/original/11d00caa-3d6a-11f0-a969-2af14a1d255b') format('woff2'),
+         url('https://brxcdn.com/uk1-app-storage/c44b0010-ed15-11ef-8a10-c682a393d09b/media/original/11d00caa-3d6a-11f0-a969-2af14a1d255b') format('woff');
+  }
+  @font-face {
+    font-family: 'Plus Jakarta Sans Light';
+    font-style: normal;
+    font-weight: 300;
+    font-display: swap;
+    src: url('https://brxcdn.com/uk1-app-storage/c44b0010-ed15-11ef-8a10-c682a393d09b/media/original/11d00caa-3d6a-11f0-a969-2af14a1d255b') format('woff2'),
+         url('https://brxcdn.com/uk1-app-storage/c44b0010-ed15-11ef-8a10-c682a393d09b/media/original/11d00caa-3d6a-11f0-a969-2af14a1d255b') format('woff');
+  }
+  @font-face {
+    font-family: 'Plus Jakarta Sans Medium';
+    font-style: normal;
+    font-weight: 500;
+    font-display: swap;
+    src: url('https://brxcdn.com/uk1-app-storage/c44b0010-ed15-11ef-8a10-c682a393d09b/media/original/11d00caa-3d6a-11f0-a969-2af14a1d255b') format('woff2'),
+         url('https://brxcdn.com/uk1-app-storage/c44b0010-ed15-11ef-8a10-c682a393d09b/media/original/11d00caa-3d6a-11f0-a969-2af14a1d255b') format('woff');
+  }
+  @font-face {
+    font-family: 'Plus Jakarta Sans Semibold';
+    font-style: normal;
+    font-weight: 600;
+    font-display: swap;
+    src: url('https://brxcdn.com/uk1-app-storage/c44b0010-ed15-11ef-8a10-c682a393d09b/media/original/11d00caa-3d6a-11f0-a969-2af14a1d255b') format('woff2'),
+         url('https://brxcdn.com/uk1-app-storage/c44b0010-ed15-11ef-8a10-c682a393d09b/media/original/11d00caa-3d6a-11f0-a969-2af14a1d255b') format('woff');
+  }
+  @font-face {
+    font-family: 'Plus Jakarta Sans Bold';
+    font-style: normal;
+    font-weight: 700;
+    font-display: swap;
+    src: url('https://brxcdn.com/uk1-app-storage/c44b0010-ed15-11ef-8a10-c682a393d09b/media/original/11d00caa-3d6a-11f0-a969-2af14a1d255b') format('woff2'),
+         url('https://brxcdn.com/uk1-app-storage/c44b0010-ed15-11ef-8a10-c682a393d09b/media/original/11d00caa-3d6a-11f0-a969-2af14a1d255b') format('woff');
+  }
+</style>
+<!--[if !mso]><!-->
+<style type="text/css">
+  /* Hint to clients that we intentionally want the custom families above. */
+  .pjs-normal   { font-family: 'Plus Jakarta Sans Normal',   sans-serif !important; }
+  .pjs-light    { font-family: 'Plus Jakarta Sans Light',    sans-serif !important; }
+  .pjs-medium   { font-family: 'Plus Jakarta Sans Medium',   sans-serif !important; }
+  .pjs-semibold { font-family: 'Plus Jakarta Sans Semibold', sans-serif !important; }
+  .pjs-bold     { font-family: 'Plus Jakarta Sans Bold',     sans-serif !important; }
+</style>
+<!--<![endif]-->
+
+
 {# --- Numeric params coerced to int so arithmetic / slicing / range()
        never receive strings (a common source of cryptic type errors
        such as "'int' object is not iterable"). --- #}
