@@ -103,23 +103,15 @@
    =========================================================== #}
 
 
-{# --- Numeric params coerced to int so arithmetic / slicing / range()
-       never receive strings (a common source of cryptic type errors
-       such as "'int' object is not iterable"). --- #}
-{% set productCount     = params.productCount | int %}
-{% set productsPerRow   = params.productsPerRow | int %}
-{% set recoPoolSize     = params.recoPoolSize | int %}
-{% set cardGapInt       = params.cardGap | int %}
-
 {# --- Computed helpers --- #}
-{% set cellWidth = (100 / productsPerRow) | round(2) %}
-{% set halfGap   = (cardGapInt / 2) | round | int %}
+{% set cellWidth = (100 / params.productsPerRow) | round(2) %}
+{% set halfGap   = (params.cardGap / 2) | round | int %}
 
 
 {# --- Mobile responsive styles --- #}
 {% if params.mobileStack %}
 <style type="text/css">
-  @media only screen and (max-width: {{ params.mobileBreakpoint | int }}px) {
+  @media only screen and (max-width: {{ params.mobileBreakpoint }}px) {
     .reco-grid-table {
       width: 100% !important;
     }
@@ -128,7 +120,7 @@
       width: 100% !important;
       padding-left: 0 !important;
       padding-right: 0 !important;
-      padding-bottom: {{ cardGapInt }}px !important;
+      padding-bottom: {{ params.cardGap }}px !important;
     }
     .reco-empty-cell {
       display: none !important;
@@ -146,19 +138,19 @@
 {# --- Main block --- #}
 <table width="100%" cellpadding="0" cellspacing="0" border="0" role="presentation" style="background-color: {{ params.blockBgColor }};">
   <tr>
-    <td align="center" style="padding: {{ params.blockPaddingTop | int }}px {{ params.blockPaddingRight | int }}px {{ params.blockPaddingBottom | int }}px {{ params.blockPaddingLeft | int }}px;">
+    <td align="center" style="padding: {{ params.blockPaddingTop }}px {{ params.blockPaddingRight }}px {{ params.blockPaddingBottom }}px {{ params.blockPaddingLeft }}px;">
 
       <!--[if mso]>
-      <table width="{{ params.blockMaxWidth | int }}" cellpadding="0" cellspacing="0" border="0" role="presentation" align="center"><tr><td>
+      <table width="{{ params.blockMaxWidth }}" cellpadding="0" cellspacing="0" border="0" role="presentation" align="center"><tr><td>
       <![endif]-->
 
-      <table class="reco-grid-table" width="100%" cellpadding="0" cellspacing="0" border="0" role="presentation" style="max-width: {{ params.blockMaxWidth | int }}px; margin: 0 auto;">
+      <table class="reco-grid-table" width="100%" cellpadding="0" cellspacing="0" border="0" role="presentation" style="max-width: {{ params.blockMaxWidth }}px; margin: 0 auto;">
 
         {# --- Fetch a larger pool so we can filter & re-sort before truncating.
                `recommendations()` can return None when there is no customer
                context (e.g. preview), so we guard against that and funnel
                the result through a real list before iterating downstream. --- #}
-        {% set recoPoolRaw = recommendations('699f134bffe1f2b21aff1773', size=recoPoolSize, fill_with_random=params.fillWithRandom) %}
+        {% set recoPoolRaw = recommendations('699f134bffe1f2b21aff1773', size=params.recoPoolSize, fill_with_random=params.fillWithRandom) %}
         {% set recoPool = [] %}
         {% if recoPoolRaw is defined and recoPoolRaw is not none %}
           {% for item in recoPoolRaw %}
@@ -278,11 +270,10 @@
 
         {# --- Truncate to the requested product count.
                Built via explicit loop instead of slice notation to
-               stay compatible with Bloomreach's Jinja dialect
-               regardless of the param's native type. --- #}
+               keep behaviour consistent in Bloomreach's Jinja dialect. --- #}
         {% set finalItems = [] %}
         {% for item in rankedItems %}
-          {% if loop.index0 < productCount %}
+          {% if loop.index0 < params.productCount %}
             {% append item to finalItems %}
           {% endif %}
         {% endfor %}
@@ -290,7 +281,7 @@
         {# --- Product grid --- #}
         {% for item in finalItems %}
 
-          {% if loop.index0 % productsPerRow == 0 %}
+          {% if loop.index0 % params.productsPerRow == 0 %}
         <tr>
           {% endif %}
 
@@ -298,11 +289,11 @@
 
             <table width="100%" cellpadding="0" cellspacing="0" border="0" role="presentation">
               <tr>
-                <td style="background-color: {{ params.cardBgColor }}; border-radius: {{ params.cardBorderRadius | int }}px; padding: {{ params.cardPadding | int }}px;">
+                <td style="background-color: {{ params.cardBgColor }}; border-radius: {{ params.cardBorderRadius }}px; padding: {{ params.cardPadding }}px;">
                   {% if params.linkEnabled %}
                   <a href="{{ item.url }}" target="_blank" style="display: block; text-decoration: none;">
                   {% endif %}
-                    <img src="{{ item.image }}" alt="{{ item.title }}" width="100%" style="display: block; width: 100%; height: auto; border: 0; border-radius: {{ params.imageBorderRadius | int }}px;" />
+                    <img src="{{ item.image }}" alt="{{ item.title }}" width="100%" style="display: block; width: 100%; height: auto; border: 0; border-radius: {{ params.imageBorderRadius }}px;" />
                   {% if params.linkEnabled %}
                   </a>
                   {% endif %}
@@ -311,7 +302,7 @@
 
               {% if params.showTitle %}
               <tr>
-                <td style="padding: {{ params.titlePaddingTop | int }}px 0 0 0; text-align: {{ params.titleAlign }}; font-family: {{ params.titleFontFamily }}; font-size: {{ params.titleFontSize | int }}px; line-height: {{ params.titleLineHeight }}; color: {{ params.titleColor }}; font-weight: {{ params.titleFontWeight }}; mso-line-height-rule: exactly;">
+                <td style="padding: {{ params.titlePaddingTop }}px 0 0 0; text-align: {{ params.titleAlign }}; font-family: {{ params.titleFontFamily }}; font-size: {{ params.titleFontSize }}px; line-height: {{ params.titleLineHeight }}; color: {{ params.titleColor }}; font-weight: {{ params.titleFontWeight }}; mso-line-height-rule: exactly;">
                   {% if params.linkEnabled %}
                   <a href="{{ item.url }}" target="_blank" style="text-decoration: none; color: {{ params.titleColor }}; font-weight: {{ params.titleFontWeight }};">{{ item.title }}</a>
                   {% else %}
@@ -323,7 +314,7 @@
 
               {% if params.showPrice %}
               <tr>
-                <td style="padding: {{ params.pricePaddingTop | int }}px 0 0 0; text-align: {{ params.priceAlign }}; font-family: {{ params.priceFontFamily }}; font-size: {{ params.priceFontSize | int }}px; line-height: {{ params.priceLineHeight }}; color: {{ params.priceColor }}; font-weight: {{ params.priceFontWeight }}; mso-line-height-rule: exactly;">
+                <td style="padding: {{ params.pricePaddingTop }}px 0 0 0; text-align: {{ params.priceAlign }}; font-family: {{ params.priceFontFamily }}; font-size: {{ params.priceFontSize }}px; line-height: {{ params.priceLineHeight }}; color: {{ params.priceColor }}; font-weight: {{ params.priceFontWeight }}; mso-line-height-rule: exactly;">
                   {{ params.pricePrefix }}{{ item.price }}
                 </td>
               </tr>
@@ -331,11 +322,11 @@
 
               {% if params.showCta %}
               <tr>
-                <td style="padding: {{ params.ctaMarginTop | int }}px 0 0 0;">
+                <td style="padding: {{ params.ctaMarginTop }}px 0 0 0;">
                   <table width="100%" cellpadding="0" cellspacing="0" border="0" role="presentation">
                     <tr>
-                      <td align="center" style="background-color: {{ params.ctaBgColor }}; border: {{ params.ctaBorderWidth | int }}px solid {{ params.ctaBorderColor }}; border-radius: {{ params.ctaBorderRadius | int }}px; mso-padding-alt: {{ params.ctaPaddingV | int }}px {{ params.ctaPaddingH | int }}px;">
-                        <a href="{{ item.url | default('#') }}" target="_blank" style="display: block; font-family: {{ params.ctaFontFamily }}; font-size: {{ params.ctaFontSize | int }}px; font-weight: {{ params.ctaFontWeight }}; color: {{ params.ctaTextColor }}; text-decoration: none; text-align: center; padding: {{ params.ctaPaddingV | int }}px 0; line-height: 1; mso-line-height-rule: exactly;">{{ item.title }}</a>
+                      <td align="center" style="background-color: {{ params.ctaBgColor }}; border: {{ params.ctaBorderWidth }}px solid {{ params.ctaBorderColor }}; border-radius: {{ params.ctaBorderRadius }}px; mso-padding-alt: {{ params.ctaPaddingV }}px {{ params.ctaPaddingH }}px;">
+                        <a href="{{ item.url | default('#') }}" target="_blank" style="display: block; font-family: {{ params.ctaFontFamily }}; font-size: {{ params.ctaFontSize }}px; font-weight: {{ params.ctaFontWeight }}; color: {{ params.ctaTextColor }}; text-decoration: none; text-align: center; padding: {{ params.ctaPaddingV }}px 0; line-height: 1; mso-line-height-rule: exactly;">{{ item.title }}</a>
                       </td>
                     </tr>
                   </table>
@@ -347,9 +338,9 @@
 
           </td>
 
-          {% if loop.index0 % productsPerRow == productsPerRow - 1 or loop.last %}
-            {% if loop.last and loop.index0 % productsPerRow != productsPerRow - 1 %}
-              {% for _ in range(productsPerRow - 1 - (loop.index0 % productsPerRow)) %}
+          {% if loop.index0 % params.productsPerRow == params.productsPerRow - 1 or loop.last %}
+            {% if loop.last and loop.index0 % params.productsPerRow != params.productsPerRow - 1 %}
+              {% for _ in range(params.productsPerRow - 1 - (loop.index0 % params.productsPerRow)) %}
           <td class="reco-empty-cell" width="{{ cellWidth }}%" style="padding: {{ halfGap }}px;">&nbsp;</td>
               {% endfor %}
             {% endif %}
