@@ -206,10 +206,14 @@
           {% endif %}
         {% endfor %}
 
-        {% set rankedItems = tier1 + tier2 + tier3 + tier4 + tierRest %}
-
         {# --- Truncate to the requested product count --- #}
-        {% set finalItems = rankedItems[:params.productCount] %}
+        {% set rankedItems = tier1 + tier2 + tier3 + tier4 + tierRest %}
+        {% set finalItems = [] %}
+        {% for item in rankedItems %}
+          {% if loop.index0 < params.productCount %}
+            {% append item to finalItems %}
+          {% endif %}
+        {% endfor %}
 
 			{% for item in finalItems %}
 
