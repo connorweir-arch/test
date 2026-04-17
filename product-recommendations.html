@@ -32,11 +32,11 @@
    filterCategory1   string    (empty)
    filterCategory2   string    (empty)
 
-   ── Sorting (customer preference) ────────────────────
-   sortCat1Agg1      string    (empty)  Aggregate ID — highest-priority Category_level_1 preference
-   sortCat1Agg2      string    (empty)  Aggregate ID — second-priority Category_level_1 preference
-   sortCat2Agg1      string    (empty)  Aggregate ID — highest-priority Category_level_2 preference
-   sortCat2Agg2      string    (empty)  Aggregate ID — second-priority Category_level_2 preference
+   ── Ranking (customer preference) ─────────────────────
+   rankCat1Agg1      string    (empty)  Aggregate ID — highest-priority Category_level_1 preference
+   rankCat1Agg2      string    (empty)  Aggregate ID — second-priority Category_level_1 preference
+   rankCat2Agg1      string    (empty)  Aggregate ID — highest-priority Category_level_2 preference
+   rankCat2Agg2      string    (empty)  Aggregate ID — second-priority Category_level_2 preference
 
    ── Layout ──────────────────────────────────────────
    productsPerRow    number    2
@@ -145,7 +145,7 @@
 
       <table class="reco-grid-table" width="100%" cellpadding="0" cellspacing="0" border="0" role="presentation" style="max-width: {{ params.blockMaxWidth }}px; margin: 0 auto;">
 
-        {# --- Fetch a larger pool so we can filter & re-sort before truncating --- #}
+        {# --- Fetch a larger pool so we can filter & rank before truncating --- #}
         {% set poolSize = params.recoPoolSize | default(50, true) | int %}
         {% set recoRaw = recommendations('699f134bffe1f2b21aff1773', size=poolSize, fill_with_random=params.fillWithRandom) %}
         {% set recoPool = recoRaw if recoRaw is iterable and recoRaw is not string and recoRaw is not mapping else [] %}
@@ -160,7 +160,7 @@
           {% endif %}
         {% endfor %}
 
-        {# --- Customer-preference re-sorting ---
+        {# --- Customer-preference ranking ---
              4 priority tiers built from customer aggregates.
              Each aggregate returns the customer's preferred category value
              (e.g. most_common Category_level_1 from purchase events).
@@ -168,15 +168,15 @@
              unmatched items keep their original recommendation order.
              When an aggregate resolves to none the tier is skipped.
 
-             Tier 1 (highest) : Category_level_1 == aggregate sortCat1Agg1
-             Tier 2           : Category_level_1 == aggregate sortCat1Agg2
-             Tier 3           : Category_level_2 == aggregate sortCat2Agg1
-             Tier 4 (lowest)  : Category_level_2 == aggregate sortCat2Agg2
+             Tier 1 (highest) : Category_level_1 == aggregate rankCat1Agg1
+             Tier 2           : Category_level_1 == aggregate rankCat1Agg2
+             Tier 3           : Category_level_2 == aggregate rankCat2Agg1
+             Tier 4 (lowest)  : Category_level_2 == aggregate rankCat2Agg2
              Remaining items keep their original reco engine order. #}
-        {% set prefCat1Agg1 = params.sortCat1Agg1 | default('', true) %}
-        {% set prefCat1Agg2 = params.sortCat1Agg2 | default('', true) %}
-        {% set prefCat2Agg1 = params.sortCat2Agg1 | default('', true) %}
-        {% set prefCat2Agg2 = params.sortCat2Agg2 | default('', true) %}
+        {% set prefCat1Agg1 = params.rankCat1Agg1 | default('', true) %}
+        {% set prefCat1Agg2 = params.rankCat1Agg2 | default('', true) %}
+        {% set prefCat2Agg1 = params.rankCat2Agg1 | default('', true) %}
+        {% set prefCat2Agg2 = params.rankCat2Agg2 | default('', true) %}
 
         {% set pref1 = aggregates[prefCat1Agg1] | default('', true) | string if prefCat1Agg1 != '' else '' %}
         {% set pref2 = aggregates[prefCat1Agg2] | default('', true) | string if prefCat1Agg2 != '' else '' %}
