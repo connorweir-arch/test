@@ -154,10 +154,10 @@
              unmatched items keep their original recommendation order.
              When an aggregate resolves to none the tier is skipped.
 
-             Tier 1 (highest) : Category_level_1 == aggregate pref1
-             Tier 2           : Category_level_1 == aggregate pref2
-             Tier 3           : Category_level_2 == aggregate pref3
-             Tier 4 (lowest)  : Category_level_2 == aggregate pref4
+             Tier 1 (highest) : Category_level_1 matches first aggregate
+             Tier 2           : Category_level_1 matches second aggregate
+             Tier 3           : Category_level_2 matches third aggregate
+             Tier 4 (lowest)  : Category_level_2 matches fourth aggregate
              Remaining items keep their original reco engine order. #}
 
         {# --- Safely load aggregate preferences ---
