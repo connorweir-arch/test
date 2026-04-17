@@ -1,6 +1,6 @@
 {# ===========================================================
    BLOOMREACH PRODUCT RECOMMENDATIONS BLOCK
-   
+
    Paste into an HTML block code editor and click
    "Load parameters from the code editor" to populate
    the parameters panel from all {{ params.xxx }} refs.
@@ -19,7 +19,7 @@
 
 {# ===========================================================
    PARAMETER SETUP GUIDE
-   
+
    After clicking "Load parameters from code editor",
    configure each parameter in the UI as follows:
 
@@ -57,6 +57,7 @@
    imageBorderRadius number    8
 
    ── Product Title ───────────────────────────────────
+   showTitle         boolean   true
    titleFontFamily   string    Arial, Helvetica, sans-serif
    titleFontSize     number    13
    titleColor        color     #333333
@@ -102,15 +103,23 @@
    =========================================================== #}
 
 
+{# --- Numeric params coerced to int so arithmetic / slicing / range()
+       never receive strings (a common source of cryptic type errors
+       such as "'int' object is not iterable"). --- #}
+{% set productCount     = params.productCount | int %}
+{% set productsPerRow   = params.productsPerRow | int %}
+{% set recoPoolSize     = params.recoPoolSize | int %}
+{% set cardGapInt       = params.cardGap | int %}
+
 {# --- Computed helpers --- #}
-{% set cellWidth = (100 / params.productsPerRow)|round(2) %}
-{% set halfGap = (params.cardGap / 2)|round|int %}
+{% set cellWidth = (100 / productsPerRow) | round(2) %}
+{% set halfGap   = (cardGapInt / 2) | round | int %}
 
 
 {# --- Mobile responsive styles --- #}
 {% if params.mobileStack %}
 <style type="text/css">
-  @media only screen and (max-width: {{ params.mobileBreakpoint }}px) {
+  @media only screen and (max-width: {{ params.mobileBreakpoint | int }}px) {
     .reco-grid-table {
       width: 100% !important;
     }
@@ -119,7 +128,7 @@
       width: 100% !important;
       padding-left: 0 !important;
       padding-right: 0 !important;
-      padding-bottom: {{ params.cardGap }}px !important;
+      padding-bottom: {{ cardGapInt }}px !important;
     }
     .reco-empty-cell {
       display: none !important;
@@ -137,16 +146,25 @@
 {# --- Main block --- #}
 <table width="100%" cellpadding="0" cellspacing="0" border="0" role="presentation" style="background-color: {{ params.blockBgColor }};">
   <tr>
-    <td align="center" style="padding: {{ params.blockPaddingTop }}px {{ params.blockPaddingRight }}px {{ params.blockPaddingBottom }}px {{ params.blockPaddingLeft }}px;">
+    <td align="center" style="padding: {{ params.blockPaddingTop | int }}px {{ params.blockPaddingRight | int }}px {{ params.blockPaddingBottom | int }}px {{ params.blockPaddingLeft | int }}px;">
 
       <!--[if mso]>
-      <table width="{{ params.blockMaxWidth }}" cellpadding="0" cellspacing="0" border="0" role="presentation" align="center"><tr><td>
+      <table width="{{ params.blockMaxWidth | int }}" cellpadding="0" cellspacing="0" border="0" role="presentation" align="center"><tr><td>
       <![endif]-->
 
-      <table class="reco-grid-table" width="100%" cellpadding="0" cellspacing="0" border="0" role="presentation" style="max-width: {{ params.blockMaxWidth }}px; margin: 0 auto;">
+      <table class="reco-grid-table" width="100%" cellpadding="0" cellspacing="0" border="0" role="presentation" style="max-width: {{ params.blockMaxWidth | int }}px; margin: 0 auto;">
 
-        {# --- Fetch a larger pool so we can filter & re-sort before truncating --- #}
-        {% set recoPool = recommendations('699f134bffe1f2b21aff1773', size=params.recoPoolSize, fill_with_random=params.fillWithRandom) | default([]) %}
+        {# --- Fetch a larger pool so we can filter & re-sort before truncating.
+               `recommendations()` can return None when there is no customer
+               context (e.g. preview), so we guard against that and funnel
+               the result through a real list before iterating downstream. --- #}
+        {% set recoPoolRaw = recommendations('699f134bffe1f2b21aff1773', size=recoPoolSize, fill_with_random=params.fillWithRandom) %}
+        {% set recoPool = [] %}
+        {% if recoPoolRaw is defined and recoPoolRaw is not none %}
+          {% for item in recoPoolRaw %}
+            {% append item to recoPool %}
+          {% endfor %}
+        {% endif %}
 
         {# --- Optional category filters ---
              When a filter param is left empty the condition is skipped,
@@ -171,68 +189,108 @@
              Tier 3           : Category_level_2 == aggregate sortCat2Agg1
              Tier 4 (lowest)  : Category_level_2 == aggregate sortCat2Agg2
              Remaining items keep their original reco engine order. #}
+
+        {# Aggregate IDs from params (may be empty strings). #}
         {% set prefCat1Agg1 = params.sortCat1Agg1 | default('', true) %}
         {% set prefCat1Agg2 = params.sortCat1Agg2 | default('', true) %}
         {% set prefCat2Agg1 = params.sortCat2Agg1 | default('', true) %}
         {% set prefCat2Agg2 = params.sortCat2Agg2 | default('', true) %}
 
-        {% set pref1 = aggregates[prefCat1Agg1] | default('', true) if prefCat1Agg1 != '' else '' %}
-        {% set pref2 = aggregates[prefCat1Agg2] | default('', true) if prefCat1Agg2 != '' else '' %}
-        {% set pref3 = aggregates[prefCat2Agg1] | default('', true) if prefCat2Agg1 != '' else '' %}
-        {% set pref4 = aggregates[prefCat2Agg2] | default('', true) if prefCat2Agg2 != '' else '' %}
+        {# --- Resolve each aggregate ID to its value.
 
-        {% set tier1 = [] %}
-        {% set tier2 = [] %}
-        {% set tier3 = [] %}
-        {% set tier4 = [] %}
+               IMPORTANT: Bloomreach's Jinja does not allow dictionary
+               lookups with a *variable* key (e.g. aggregates[myKey]).
+               The documented workaround is to wrap the dictionary in
+               a list and index back out: [aggregates][0][myKey].
+
+               We also cannot simply do `{% set pref = ... %}` inside
+               an `{% if %}` block because `set` does not escape block
+               scope in Bloomreach. So we use single-element list
+               containers and mutate them via `append` / `pop`, which
+               DO escape scope (lists are reference types). --- #}
+        {% set pref1List = [] %}
+        {% set pref2List = [] %}
+        {% set pref3List = [] %}
+        {% set pref4List = [] %}
+
+        {% if aggregates is defined and aggregates is not none %}
+          {% if prefCat1Agg1 != '' and [aggregates][0][prefCat1Agg1] is defined and [aggregates][0][prefCat1Agg1] is not none %}
+            {% append [aggregates][0][prefCat1Agg1] to pref1List %}
+          {% endif %}
+          {% if prefCat1Agg2 != '' and [aggregates][0][prefCat1Agg2] is defined and [aggregates][0][prefCat1Agg2] is not none %}
+            {% append [aggregates][0][prefCat1Agg2] to pref2List %}
+          {% endif %}
+          {% if prefCat2Agg1 != '' and [aggregates][0][prefCat2Agg1] is defined and [aggregates][0][prefCat2Agg1] is not none %}
+            {% append [aggregates][0][prefCat2Agg1] to pref3List %}
+          {% endif %}
+          {% if prefCat2Agg2 != '' and [aggregates][0][prefCat2Agg2] is defined and [aggregates][0][prefCat2Agg2] is not none %}
+            {% append [aggregates][0][prefCat2Agg2] to pref4List %}
+          {% endif %}
+        {% endif %}
+
+        {% set tier1    = [] %}
+        {% set tier2    = [] %}
+        {% set tier3    = [] %}
+        {% set tier4    = [] %}
         {% set tierRest = [] %}
-        {% set placed = [] %}
+        {% set placed   = [] %}
 
+        {# Tier 1: Category_level_1 matches highest-priority preference. #}
         {% for item in filtered %}
-          {% if pref1 and pref1 != '' and item.Category_level_1 == pref1 %}
+          {% if pref1List | length > 0 and item.Category_level_1 == pref1List[0] %}
             {% append item to tier1 %}
             {% append loop.index0 to placed %}
           {% endif %}
         {% endfor %}
 
+        {# Tier 2: Category_level_1 matches second preference (and not already placed). #}
         {% for item in filtered %}
-          {% if loop.index0 not in placed and pref2 and pref2 != '' and item.Category_level_1 == pref2 %}
+          {% if loop.index0 not in placed and pref2List | length > 0 and item.Category_level_1 == pref2List[0] %}
             {% append item to tier2 %}
             {% append loop.index0 to placed %}
           {% endif %}
         {% endfor %}
 
+        {# Tier 3: Category_level_2 matches highest-priority preference. #}
         {% for item in filtered %}
-          {% if loop.index0 not in placed and pref3 and pref3 != '' and item.Category_level_2 == pref3 %}
+          {% if loop.index0 not in placed and pref3List | length > 0 and item.Category_level_2 == pref3List[0] %}
             {% append item to tier3 %}
             {% append loop.index0 to placed %}
           {% endif %}
         {% endfor %}
 
+        {# Tier 4: Category_level_2 matches second preference. #}
         {% for item in filtered %}
-          {% if loop.index0 not in placed and pref4 and pref4 != '' and item.Category_level_2 == pref4 %}
+          {% if loop.index0 not in placed and pref4List | length > 0 and item.Category_level_2 == pref4List[0] %}
             {% append item to tier4 %}
             {% append loop.index0 to placed %}
           {% endif %}
         {% endfor %}
 
+        {# Remaining items keep original recommendation order. #}
         {% for item in filtered %}
           {% if loop.index0 not in placed %}
             {% append item to tierRest %}
           {% endif %}
         {% endfor %}
 
-        {% set sorted = tier1 + tier2 + tier3 + tier4 + tierRest %}
+        {% set rankedItems = tier1 + tier2 + tier3 + tier4 + tierRest %}
 
-        {# --- Truncate to the requested product count --- #}
-        {% set finalItems = sorted[:params.productCount] %}
+        {# --- Truncate to the requested product count.
+               Built via explicit loop instead of slice notation to
+               stay compatible with Bloomreach's Jinja dialect
+               regardless of the param's native type. --- #}
+        {% set finalItems = [] %}
+        {% for item in rankedItems %}
+          {% if loop.index0 < productCount %}
+            {% append item to finalItems %}
+          {% endif %}
+        {% endfor %}
 
-        {# --- Product grid ---
-             To change the recommendation engine, replace the ID string below.
-             Bloomreach requires this to be a hardcoded constant. #}
+        {# --- Product grid --- #}
         {% for item in finalItems %}
 
-          {% if loop.index0 % params.productsPerRow == 0 %}
+          {% if loop.index0 % productsPerRow == 0 %}
         <tr>
           {% endif %}
 
@@ -240,20 +298,20 @@
 
             <table width="100%" cellpadding="0" cellspacing="0" border="0" role="presentation">
               <tr>
-                <td style="background-color: {{ params.cardBgColor }}; border-radius: {{ params.cardBorderRadius }}px; padding: {{ params.cardPadding }}px;">
+                <td style="background-color: {{ params.cardBgColor }}; border-radius: {{ params.cardBorderRadius | int }}px; padding: {{ params.cardPadding | int }}px;">
                   {% if params.linkEnabled %}
                   <a href="{{ item.url }}" target="_blank" style="display: block; text-decoration: none;">
                   {% endif %}
-                    <img src="{{ item.image }}" alt="{{ item.title }}" width="100%" style="display: block; width: 100%; height: auto; border: 0; border-radius: {{ params.imageBorderRadius }}px;" />
+                    <img src="{{ item.image }}" alt="{{ item.title }}" width="100%" style="display: block; width: 100%; height: auto; border: 0; border-radius: {{ params.imageBorderRadius | int }}px;" />
                   {% if params.linkEnabled %}
                   </a>
                   {% endif %}
                 </td>
               </tr>
 
-				{% if params.showTitle %}
+              {% if params.showTitle %}
               <tr>
-                <td style="padding: {{ params.titlePaddingTop }}px 0 0 0; text-align: {{ params.titleAlign }}; font-family: {{ params.titleFontFamily }}; font-size: {{ params.titleFontSize }}px; line-height: {{ params.titleLineHeight }}; color: {{ params.titleColor }}; font-weight: {{ params.titleFontWeight }}; mso-line-height-rule: exactly;">
+                <td style="padding: {{ params.titlePaddingTop | int }}px 0 0 0; text-align: {{ params.titleAlign }}; font-family: {{ params.titleFontFamily }}; font-size: {{ params.titleFontSize | int }}px; line-height: {{ params.titleLineHeight }}; color: {{ params.titleColor }}; font-weight: {{ params.titleFontWeight }}; mso-line-height-rule: exactly;">
                   {% if params.linkEnabled %}
                   <a href="{{ item.url }}" target="_blank" style="text-decoration: none; color: {{ params.titleColor }}; font-weight: {{ params.titleFontWeight }};">{{ item.title }}</a>
                   {% else %}
@@ -265,7 +323,7 @@
 
               {% if params.showPrice %}
               <tr>
-                <td style="padding: {{ params.pricePaddingTop }}px 0 0 0; text-align: {{ params.priceAlign }}; font-family: {{ params.priceFontFamily }}; font-size: {{ params.priceFontSize }}px; line-height: {{ params.priceLineHeight }}; color: {{ params.priceColor }}; font-weight: {{ params.priceFontWeight }}; mso-line-height-rule: exactly;">
+                <td style="padding: {{ params.pricePaddingTop | int }}px 0 0 0; text-align: {{ params.priceAlign }}; font-family: {{ params.priceFontFamily }}; font-size: {{ params.priceFontSize | int }}px; line-height: {{ params.priceLineHeight }}; color: {{ params.priceColor }}; font-weight: {{ params.priceFontWeight }}; mso-line-height-rule: exactly;">
                   {{ params.pricePrefix }}{{ item.price }}
                 </td>
               </tr>
@@ -273,11 +331,11 @@
 
               {% if params.showCta %}
               <tr>
-                <td style="padding: {{ params.ctaMarginTop }}px 0 0 0;">
+                <td style="padding: {{ params.ctaMarginTop | int }}px 0 0 0;">
                   <table width="100%" cellpadding="0" cellspacing="0" border="0" role="presentation">
                     <tr>
-                      <td align="center" style="background-color: {{ params.ctaBgColor }}; border: {{ params.ctaBorderWidth }}px solid {{ params.ctaBorderColor }}; border-radius: {{ params.ctaBorderRadius }}px; mso-padding-alt: {{ params.ctaPaddingV }}px {{ params.ctaPaddingH }}px;">
-                        <a href="{{ item.url | default('#') }}" target="_blank" style="display: block; font-family: {{ params.ctaFontFamily }}; font-size: {{ params.ctaFontSize }}px; font-weight: {{ params.ctaFontWeight }}; color: {{ params.ctaTextColor }}; text-decoration: none; text-align: center; padding: {{ params.ctaPaddingV }}px 0; line-height: 1; mso-line-height-rule: exactly;">{{ item.title }}</a>
+                      <td align="center" style="background-color: {{ params.ctaBgColor }}; border: {{ params.ctaBorderWidth | int }}px solid {{ params.ctaBorderColor }}; border-radius: {{ params.ctaBorderRadius | int }}px; mso-padding-alt: {{ params.ctaPaddingV | int }}px {{ params.ctaPaddingH | int }}px;">
+                        <a href="{{ item.url | default('#') }}" target="_blank" style="display: block; font-family: {{ params.ctaFontFamily }}; font-size: {{ params.ctaFontSize | int }}px; font-weight: {{ params.ctaFontWeight }}; color: {{ params.ctaTextColor }}; text-decoration: none; text-align: center; padding: {{ params.ctaPaddingV | int }}px 0; line-height: 1; mso-line-height-rule: exactly;">{{ item.title }}</a>
                       </td>
                     </tr>
                   </table>
@@ -289,9 +347,9 @@
 
           </td>
 
-          {% if loop.index0 % params.productsPerRow == params.productsPerRow - 1 or loop.last %}
-            {% if loop.last and loop.index0 % params.productsPerRow != params.productsPerRow - 1 %}
-              {% for _ in range(params.productsPerRow - 1 - (loop.index0 % params.productsPerRow)) %}
+          {% if loop.index0 % productsPerRow == productsPerRow - 1 or loop.last %}
+            {% if loop.last and loop.index0 % productsPerRow != productsPerRow - 1 %}
+              {% for _ in range(productsPerRow - 1 - (loop.index0 % productsPerRow)) %}
           <td class="reco-empty-cell" width="{{ cellWidth }}%" style="padding: {{ halfGap }}px;">&nbsp;</td>
               {% endfor %}
             {% endif %}
