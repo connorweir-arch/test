@@ -100,6 +100,19 @@
 
    ── Product Link ────────────────────────────────────
    linkEnabled       boolean   true
+
+   ── Custom fonts (supported inboxes only) ───────────
+   The block embeds the following web fonts via @font-face.
+   Enter any of these strings as the value for a
+   *FontFamily param (titleFontFamily, priceFontFamily,
+   ctaFontFamily) to use the brand face. Clients that do
+   not support web fonts fall back to sans-serif.
+
+     'Plus Jakarta Sans Normal',   sans-serif
+     'Plus Jakarta Sans Light',    sans-serif
+     'Plus Jakarta Sans Medium',   sans-serif
+     'Plus Jakarta Sans Semibold', sans-serif
+     'Plus Jakarta Sans Bold',     sans-serif
    =========================================================== #}
 
 
@@ -114,6 +127,56 @@
 {# --- Computed helpers --- #}
 {% set cellWidth = (100 / productsPerRow) | round(2) %}
 {% set halfGap   = (cardGapInt / 2) | round | int %}
+
+
+{# --- Custom web fonts ---
+       Declares five Plus Jakarta Sans variants so that email clients
+       which support @font-face (Apple Mail, iOS Mail, Thunderbird,
+       Samsung Mail, most Android Gmail webviews, etc.) can render
+       the block in the brand face. Clients that do not support web
+       fonts (e.g. Outlook on Windows, Gmail webmail) quietly fall
+       back to the generic sans-serif family declared after each
+       font-family name in the CSS value below.
+
+       To use a variant in any font-family parameter, enter:
+         'Plus Jakarta Sans Normal',    sans-serif
+         'Plus Jakarta Sans Light',     sans-serif
+         'Plus Jakarta Sans Medium',    sans-serif
+         'Plus Jakarta Sans Semibold',  sans-serif
+         'Plus Jakarta Sans Bold',      sans-serif
+  --- #}
+<style type="text/css">
+  @font-face {
+    font-family: 'Plus Jakarta Sans Normal';
+    font-style: normal;
+    font-weight: 400;
+    src: url('https://brxcdn.com/uk1-app-storage/c44b0010-ed15-11ef-8a10-c682a393d09b/media/original/11d00caa-3d6a-11f0-a969-2af14a1d255b');
+  }
+  @font-face {
+    font-family: 'Plus Jakarta Sans Light';
+    font-style: normal;
+    font-weight: 300;
+    src: url('https://brxcdn.com/uk1-app-storage/c44b0010-ed15-11ef-8a10-c682a393d09b/media/original/11d00caa-3d6a-11f0-a969-2af14a1d255b');
+  }
+  @font-face {
+    font-family: 'Plus Jakarta Sans Medium';
+    font-style: normal;
+    font-weight: 500;
+    src: url('https://brxcdn.com/uk1-app-storage/c44b0010-ed15-11ef-8a10-c682a393d09b/media/original/11d00caa-3d6a-11f0-a969-2af14a1d255b');
+  }
+  @font-face {
+    font-family: 'Plus Jakarta Sans Semibold';
+    font-style: normal;
+    font-weight: 600;
+    src: url('https://brxcdn.com/uk1-app-storage/c44b0010-ed15-11ef-8a10-c682a393d09b/media/original/11d00caa-3d6a-11f0-a969-2af14a1d255b');
+  }
+  @font-face {
+    font-family: 'Plus Jakarta Sans Bold';
+    font-style: normal;
+    font-weight: 700;
+    src: url('https://brxcdn.com/uk1-app-storage/c44b0010-ed15-11ef-8a10-c682a393d09b/media/original/11d00caa-3d6a-11f0-a969-2af14a1d255b');
+  }
+</style>
 
 
 {# --- Mobile responsive styles --- #}
