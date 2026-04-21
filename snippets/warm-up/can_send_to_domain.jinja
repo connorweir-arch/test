@@ -1,0 +1,67 @@
+{# =============================================================================
+   Snippet: can_send_to_domain
+   Purpose: Returns the literal string "TRUE" if a recipient's domain is still
+            within its daily warm-up volume target AND the global killswitch
+            is inactive. Otherwise returns "FALSE".
+
+   Used as the audience filter / send-time gate on:
+     - Warm-up newsletter
+     - Behavioural sends (welcome, abandoned cart, browse, category, search)
+
+   Inputs (Bloomreach Engagement context available to snippets):
+     - customer.email                         -> recipient email
+     - Aggregate metric: "warm_up_sent_today" by domain (today's sent count)
+     - Event:            "warm_up_plan"       -> attributes:
+                                                  warm_up_date (YYYY-MM-DD)
+                                                  domain
+                                                  domain_volume_target (int)
+     - Global attribute / "killswitch" event:  killswitch_active (bool)
+
+   Notes:
+     * Bloomreach Jinja prints values rather than returning them, so we emit
+       the string literal "TRUE" / "FALSE". When using this snippet in an
+       audience filter, compare to the string ("== 'TRUE'").
+     * All numeric coercions are defensive; unknown / missing values fall
+       through to "FALSE" (fail-safe == do not send).
+     * Replace metric / event / attribute identifiers with the exact slugs
+       used in your project (kept as readable names here for clarity).
+   ============================================================================= #}
+
+{%- set email = customer.email | default('') | lower -%}
+
+{%- if '@' not in email -%}
+FALSE
+{%- else -%}
+    {%- set domain = email.split('@')[1] | trim -%}
+
+    {# ---- 1. Killswitch check (global, fail-safe to FALSE) ---------------- #}
+    {%- set killswitch = killswitch_active | default(true) -%}
+    {%- if killswitch in [true, 'true', 'TRUE', 1, '1'] -%}
+FALSE
+    {%- else -%}
+
+        {# ---- 2. Lookup today's plan row for this domain ----------------- #}
+        {%- set today = now() | date('%Y-%m-%d') -%}
+        {%- set plan = events('warm_up_plan',
+                              filter={'domain': domain,
+                                      'warm_up_date': today},
+                              order='desc',
+                              count=1) -%}
+
+        {%- if plan | length == 0 -%}
+FALSE
+        {%- else -%}
+            {%- set target = plan[0].properties.domain_volume_target | int(0) -%}
+
+            {# ---- 3. Lookup volume already sent to this domain today ----- #}
+            {%- set sent = aggregate('warm_up_sent_today',
+                                     filter={'domain': domain}) | int(0) -%}
+
+            {%- if target > 0 and sent < target -%}
+TRUE
+            {%- else -%}
+FALSE
+            {%- endif -%}
+        {%- endif -%}
+    {%- endif -%}
+{%- endif -%}

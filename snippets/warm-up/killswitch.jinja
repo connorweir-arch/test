@@ -1,0 +1,67 @@
+{# =============================================================================
+   Snippet: killswitch
+   Purpose: Single source of truth for whether sending is currently halted.
+            Emits "TRUE" when sending should be BLOCKED, otherwise "FALSE".
+
+   The killswitch trips when any of the following are true:
+     1. A manual override flag is set (delivery team can flip in seconds).
+     2. Domain-level deliverability metrics breach configured thresholds.
+     3. A "killswitch_tripped" event has been written in the last N hours
+        (so the switch stays latched until a human resets it).
+
+   Thresholds below are deliberately conservative; tune per programme.
+   Inputs assumed to exist as project-level aggregates / attributes:
+     - project_attribute "killswitch_manual"            -> bool
+     - aggregate "bounce_rate_24h"   by domain          -> float (0..1)
+     - aggregate "complaint_rate_24h" by domain         -> float (0..1)
+     - aggregate "delivered_rate_24h" by domain         -> float (0..1)
+     - event     "killswitch_tripped"                   -> reset by delivery team
+   ============================================================================= #}
+
+{%- set HARD_BOUNCE_MAX   = 0.02  -%}  {# 2.0%  hard bounce ceiling   #}
+{%- set COMPLAINT_MAX     = 0.001 -%}  {# 0.1%  complaint ceiling     #}
+{%- set DELIVERED_MIN     = 0.95  -%}  {# 95%   delivered floor       #}
+{%- set LATCH_HOURS       = 24    -%}  {# stay tripped for >= N hours #}
+
+{%- set email  = customer.email | default('') | lower -%}
+{%- set domain = email.split('@')[1] if '@' in email else '' -%}
+
+{# ---- 1. Manual override (highest priority) ------------------------------ #}
+{%- set manual = killswitch_manual | default(false) -%}
+{%- if manual in [true, 'true', 'TRUE', 1, '1'] -%}
+TRUE
+{%- else -%}
+
+    {# ---- 2. Latched: was tripped recently and not yet reset? ----------- #}
+    {%- set last_trip = events('killswitch_tripped',
+                               order='desc',
+                               count=1) -%}
+    {%- set latched = false -%}
+    {%- if last_trip | length > 0 -%}
+        {%- set hours_since = ((now() - last_trip[0].timestamp) / 3600) | int(99999) -%}
+        {%- if hours_since < LATCH_HOURS -%}
+            {%- set latched = true -%}
+        {%- endif -%}
+    {%- endif -%}
+
+    {%- if latched -%}
+TRUE
+    {%- else -%}
+
+        {# ---- 3. Live deliverability thresholds (per domain) ------------ #}
+        {%- set bounce    = aggregate('bounce_rate_24h',
+                                      filter={'domain': domain}) | float(0) -%}
+        {%- set complaint = aggregate('complaint_rate_24h',
+                                      filter={'domain': domain}) | float(0) -%}
+        {%- set delivered = aggregate('delivered_rate_24h',
+                                      filter={'domain': domain}) | float(1) -%}
+
+        {%- if bounce    > HARD_BOUNCE_MAX
+           or complaint > COMPLAINT_MAX
+           or delivered < DELIVERED_MIN -%}
+TRUE
+        {%- else -%}
+FALSE
+        {%- endif -%}
+    {%- endif -%}
+{%- endif -%}
