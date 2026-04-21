@@ -1,0 +1,74 @@
+{# =========================================================
+   SNIPPET: wu_can_send
+   Purpose: Returns "true" if this recipient is allowed to
+            receive a warm-up send right now, "false" otherwise.
+
+   Used by:
+     - Newsletter campaigns (filter on snippet == "true")
+     - Behavioural scenarios (Condition node)
+
+   Inputs (read from customer + catalog + aggregates):
+     - customer.email_provider     (derived attr, e.g. "google")
+     - customer.warm_up_eligible_today_<provider>  (set by the
+       morning audience-build scenario; "true" while the
+       recipient is in today's allowed pool)
+     - catalog: warm_up_plan       (rows keyed by date+provider)
+     - catalog: warm_up_settings   (single row, global flags)
+
+   Returns:
+     - "true"  -> proceed with send
+     - "false" -> drop / skip
+   ========================================================= #}
+
+{# --- 1. Resolve the recipient's mailbox provider ----------- #}
+{% set provider = customer.email_provider | default('') | lower %}
+
+{% if provider == '' %}
+  false
+{% else %}
+
+  {# --- 2. Global killswitch (single-row settings catalog) -- #}
+  {% set settings = catalog_item('warm_up_settings', 'global') %}
+  {% set killswitch_global = settings.killswitch_active | default(false) %}
+
+  {# --- 3. Per-provider killswitch (same catalog, per-row) -- #}
+  {% set provider_settings = catalog_item('warm_up_settings', provider) %}
+  {% set killswitch_provider = provider_settings.killswitch_active | default(false) %}
+
+  {# --- 4. Today's plan row for this provider -------------- #}
+  {% set today = now().strftime('%Y-%m-%d') %}
+  {% set plan_id = today ~ '_' ~ provider %}
+  {% set plan = catalog_item('warm_up_plan', plan_id) %}
+
+  {% set plan_exists      = plan is defined and plan is not none %}
+  {% set plan_is_active   = plan_exists and (plan.is_active | default(true)) %}
+  {% set plan_is_paused   = plan_exists and (plan.is_paused | default(false)) %}
+  {% set target_volume    = (plan.target_volume | default(0)) | int %}
+
+  {# --- 5. Recipient's pool eligibility (set by morning build) #}
+  {# Customer attributes can't be looked up by dynamic key in
+     Jinja, so we branch by provider. Add cases per provider. #}
+  {% if provider == 'google' %}
+    {% set eligible_today = customer.warm_up_eligible_today_google | default('false') %}
+  {% elif provider == 'microsoft' %}
+    {% set eligible_today = customer.warm_up_eligible_today_microsoft | default('false') %}
+  {% elif provider == 'yahoo' %}
+    {% set eligible_today = customer.warm_up_eligible_today_yahoo | default('false') %}
+  {% elif provider == 'apple' %}
+    {% set eligible_today = customer.warm_up_eligible_today_apple | default('false') %}
+  {% else %}
+    {% set eligible_today = customer.warm_up_eligible_today_other | default('false') %}
+  {% endif %}
+
+  {# --- 6. Final decision --------------------------------- #}
+  {% if killswitch_global %}false
+  {% elif killswitch_provider %}false
+  {% elif not plan_exists %}false
+  {% elif not plan_is_active %}false
+  {% elif plan_is_paused %}false
+  {% elif target_volume <= 0 %}false
+  {% elif eligible_today | string | lower != 'true' %}false
+  {% else %}true
+  {% endif %}
+
+{% endif %}

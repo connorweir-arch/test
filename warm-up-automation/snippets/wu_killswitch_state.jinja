@@ -1,0 +1,34 @@
+{# =========================================================
+   SNIPPET: wu_killswitch_state
+   Purpose: Returns the warm-up killswitch state as a small
+            JSON-ish string that scenarios and templates can
+            render or inspect.
+
+   Reading vs setting:
+     - This snippet READS state from the warm_up_settings
+       catalog. It does not flip the killswitch.
+     - Flipping is done in a scenario (see "Killswitch
+       activation flow" in the framework doc) by either:
+         a) Updating the warm_up_settings catalog row via
+            an outbound webhook to BRE's catalog API, or
+         b) Toggling a customer property on a single
+            "system" customer that the catalog row mirrors.
+
+   Inputs:
+     - Optional Jinja variable `provider` — when supplied,
+       reads the per-provider row; otherwise reads `global`.
+
+   Returns: a single-line string, e.g.
+     active=false; tripped_at=; tripped_by=; reason=
+     active=true;  tripped_at=2026-04-21T08:14:00Z; tripped_by=auto_bounce_rate; reason=microsoft hard bounce 4.1%
+   ========================================================= #}
+
+{% set provider = (provider | default(''))     | lower %}
+{% set row_id   = provider if provider else 'global' %}
+{% set s        = catalog_item('warm_up_settings', row_id) %}
+
+{% if s is not defined or s is none %}
+active=false; tripped_at=; tripped_by=; reason=
+{% else %}
+active={{ (s.killswitch_active | default(false)) | string | lower }}; tripped_at={{ s.killswitch_tripped_at | default('') }}; tripped_by={{ s.killswitch_tripped_by | default('') }}; reason={{ s.killswitch_reason | default('') }}
+{% endif %}
