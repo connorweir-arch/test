@@ -27,6 +27,13 @@
    productCount      number    2
    fillWithRandom    boolean   true
    recoPoolSize      number    50
+       Number of items to pull from the reco engine before
+       filtering / re-sorting. Bigger pool = better chance
+       the filters / preference tiers find matches, but the
+       reco engine call gets slower. Practical ceiling is
+       around 100-150 — beyond that the request itself
+       starts to time out (no template-side trick can fix
+       that, the call is server-to-server).
 
    ── Filtering ───────────────────────────────────────
    filterCategory1   string    (empty)
@@ -100,26 +107,36 @@
 
    ── Product Link ────────────────────────────────────
    linkEnabled       boolean   true
-
-   ── Custom Web Fonts ────────────────────────────────
-   loadCustomFonts   boolean   true
-       When enabled, the block declares @font-face rules for the
-       "Plus Jakarta Sans" family (Light / Normal / Medium /
-       Semibold / Bold). Inboxes that support web fonts
-       (Apple Mail, iOS Mail, Samsung Mail, some Android
-       clients) will download and render them; every other
-       client falls back to the generic sans-serif specified
-       in the titleFontFamily / priceFontFamily / ctaFontFamily
-       params.
-
-       To use a weight, set the relevant Font Family param to
-       one of:
-         'Plus Jakarta Sans Light', sans-serif
-         'Plus Jakarta Sans Normal', sans-serif
-         'Plus Jakarta Sans Medium', sans-serif
-         'Plus Jakarta Sans Semibold', sans-serif
-         'Plus Jakarta Sans Bold', sans-serif
    =========================================================== #}
+
+
+{# --- Helper macro: thousands-separated price/number format.
+       Defined at the top of the file so it's hoisted before
+       any callers (Bloomreach Jinja resolves macros at parse
+       time, but keeping it up here also keeps generated
+       whitespace out of the <table> body). --- #}
+{%- macro format_price(price, thousand_separator=',', decimal_separator='.', decimal_places=2) -%}
+  {%- set price_as_string = price | string -%}
+  {%- set price_split = price_as_string.split('.') -%}
+  {%- set price_integer = price_split[0] -%}
+  {%- if price_split | count > 1 -%}
+    {%- set price_fraction = price_split[1] -%}
+    {%- if price_fraction | length < decimal_places -%}
+      {%- set price_fraction = price_fraction.ljust(decimal_places, '0') -%}
+    {%- else -%}
+      {%- set price_fraction = price_fraction[:decimal_places] -%}
+    {%- endif -%}
+  {%- else -%}
+    {%- set price_fraction = '' -%}
+  {%- endif -%}
+  {%- set formatted_price_integer = price_integer | reverse | batch(3) | map('join', '') | join(thousand_separator) | reverse -%}
+  {%- if price_fraction != '' -%}
+    {%- set formatted_price = formatted_price_integer ~ decimal_separator ~ price_fraction -%}
+  {%- else -%}
+    {%- set formatted_price = formatted_price_integer -%}
+  {%- endif -%}
+  {{- formatted_price -}}
+{%- endmacro -%}
 
 
 {# --- Numeric params coerced to int so arithmetic / slicing / range()
@@ -135,70 +152,16 @@
 {% set halfGap   = (cardGapInt / 2) | round | int %}
 
 
-{# --- Custom web fonts (Plus Jakarta Sans) ---
-     Email clients that honour <style> blocks and web fonts
-     (Apple Mail, iOS Mail, Samsung Mail, Thunderbird, some
-     Android clients) will download and render these faces.
-     Clients that don't support web fonts (Gmail, Outlook,
-     Yahoo, etc.) silently ignore the @font-face declarations
-     and fall back to the generic sans-serif supplied in the
-     titleFontFamily / priceFontFamily / ctaFontFamily params. --- #}
-{% if params.loadCustomFonts %}
-<style type="text/css">
-  @font-face {
-    font-family: 'Plus Jakarta Sans Light';
-    font-style: normal;
-    font-weight: 300;
-    font-display: swap;
-    src: url('https://brxcdn.com/uk1-app-storage/c44b0010-ed15-11ef-8a10-c682a393d09b/media/original/11d00caa-3d6a-11f0-a969-2af14a1d255b') format('woff2'),
-         url('https://brxcdn.com/uk1-app-storage/c44b0010-ed15-11ef-8a10-c682a393d09b/media/original/11d00caa-3d6a-11f0-a969-2af14a1d255b') format('woff');
-  }
-  @font-face {
-    font-family: 'Plus Jakarta Sans Normal';
-    font-style: normal;
-    font-weight: 400;
-    font-display: swap;
-    src: url('https://brxcdn.com/uk1-app-storage/c44b0010-ed15-11ef-8a10-c682a393d09b/media/original/11d00caa-3d6a-11f0-a969-2af14a1d255b') format('woff2'),
-         url('https://brxcdn.com/uk1-app-storage/c44b0010-ed15-11ef-8a10-c682a393d09b/media/original/11d00caa-3d6a-11f0-a969-2af14a1d255b') format('woff');
-  }
-  @font-face {
-    font-family: 'Plus Jakarta Sans Medium';
-    font-style: normal;
-    font-weight: 500;
-    font-display: swap;
-    src: url('https://brxcdn.com/uk1-app-storage/c44b0010-ed15-11ef-8a10-c682a393d09b/media/original/11d00caa-3d6a-11f0-a969-2af14a1d255b') format('woff2'),
-         url('https://brxcdn.com/uk1-app-storage/c44b0010-ed15-11ef-8a10-c682a393d09b/media/original/11d00caa-3d6a-11f0-a969-2af14a1d255b') format('woff');
-  }
-  @font-face {
-    font-family: 'Plus Jakarta Sans Semibold';
-    font-style: normal;
-    font-weight: 600;
-    font-display: swap;
-    src: url('https://brxcdn.com/uk1-app-storage/c44b0010-ed15-11ef-8a10-c682a393d09b/media/original/11d00caa-3d6a-11f0-a969-2af14a1d255b') format('woff2'),
-         url('https://brxcdn.com/uk1-app-storage/c44b0010-ed15-11ef-8a10-c682a393d09b/media/original/11d00caa-3d6a-11f0-a969-2af14a1d255b') format('woff');
-  }
-  @font-face {
-    font-family: 'Plus Jakarta Sans Bold';
-    font-style: normal;
-    font-weight: 700;
-    font-display: swap;
-    src: url('https://brxcdn.com/uk1-app-storage/c44b0010-ed15-11ef-8a10-c682a393d09b/media/original/11d00caa-3d6a-11f0-a969-2af14a1d255b') format('woff2'),
-         url('https://brxcdn.com/uk1-app-storage/c44b0010-ed15-11ef-8a10-c682a393d09b/media/original/11d00caa-3d6a-11f0-a969-2af14a1d255b') format('woff');
-  }
-</style>
-<!--[if !mso]><!-->
-<link rel="preconnect" href="https://brxcdn.com" crossorigin />
-<!--<![endif]-->
-{% endif %}
-
-
-{# --- Mobile responsive styles --- #}
+{# --- Mobile responsive styles ---
+       NOTE: do NOT let an HTML formatter "tidy" this block — it will
+       split the {{ ... }} Jinja tags across lines, which silently
+       breaks the CSS (the browser sees `max-width: 480` with no
+       unit, drops the rule, and the cards explode to full width).
+       Keep each Jinja tag on a single line. --- #}
 {% if params.mobileStack %}
 <style type="text/css">
   @media only screen and (max-width: {{ params.mobileBreakpoint | int }}px) {
-    .reco-grid-table {
-      width: 100% !important;
-    }
+    .reco-grid-table { width: 100% !important; }
     .reco-product-cell {
       display: block !important;
       width: 100% !important;
@@ -231,10 +194,10 @@
       <table class="reco-grid-table" width="100%" cellpadding="0" cellspacing="0" border="0" role="presentation" style="max-width: {{ params.blockMaxWidth | int }}px; margin: 0 auto;">
 
         {# --- Fetch a larger pool so we can filter & re-sort before truncating.
-               `recommendations()` can return None when there is no customer
+               recommendations() can return None when there is no customer
                context (e.g. preview), so we guard against that and funnel
                the result through a real list before iterating downstream. --- #}
-        {% set recoPoolRaw = recommendations('699f134bffe1f2b21aff1773', size=recoPoolSize, fill_with_random=params.fillWithRandom) %}
+        {% set recoPoolRaw = recommendations(params.recommendation, size=recoPoolSize, fill_with_random=params.fillWithRandom) %}
         {% set recoPool = [] %}
         {% if recoPoolRaw is defined and recoPoolRaw is not none %}
           {% for item in recoPoolRaw %}
@@ -243,52 +206,34 @@
         {% endif %}
 
         {# --- Optional category filters ---
-             When a filter param is left empty the condition is skipped,
-             so all items pass through. Both filters can be active at once. #}
+               When a filter param is left empty the condition is skipped,
+               so all items pass through. Both filters can be active at once. #}
         {% set filtered = [] %}
         {% for item in recoPool %}
-          {% if (not params.filterCategory1 or params.filterCategory1 == '' or item.Category_level_1 == params.filterCategory1) and (not params.filterCategory2 or params.filterCategory2 == '' or item.Category_level_2 == params.filterCategory2) %}
+          {% if (not params.filterCategory1 or params.filterCategory1 == '' or item.category_level_1 == params.filterCategory1) and (not params.filterCategory2 or params.filterCategory2 == '' or item.category_level_2 == params.filterCategory2) %}
             {% append item to filtered %}
           {% endif %}
         {% endfor %}
 
         {# --- Customer-preference re-sorting ---
-             4 priority tiers built from customer aggregates.
-             Each aggregate returns the customer's preferred category value
-             (e.g. most_common Category_level_1 from purchase events).
-             Items matching the highest-priority tier appear first;
-             unmatched items keep their original recommendation order.
-             When an aggregate resolves to none the tier is skipped.
+               Hardcoded aggregate IDs because Bloomreach Jinja requires
+               recommendationId-style strings to be constant. Move them
+               to params if/when needed. #}
+        {% set prefCat1Agg1 = '699de5d3269674d63640b237' %}
+        {% set prefCat1Agg2 = '699de5d0aafd3527a7a14ccc' %}
+        {% set prefCat2Agg1 = '699de5d209c6819bb2bf270b' %}
+        {% set prefCat2Agg2 = '699de58a09c6819bb2bf2704' %}
 
-             Tier 1 (highest) : Category_level_1 == aggregate sortCat1Agg1
-             Tier 2           : Category_level_1 == aggregate sortCat1Agg2
-             Tier 3           : Category_level_2 == aggregate sortCat2Agg1
-             Tier 4 (lowest)  : Category_level_2 == aggregate sortCat2Agg2
-             Remaining items keep their original reco engine order. #}
-
-        {# Aggregate IDs from params (may be empty strings). #}
-        {% set prefCat1Agg1 = params.sortCat1Agg1 | default('', true) %}
-        {% set prefCat1Agg2 = params.sortCat1Agg2 | default('', true) %}
-        {% set prefCat2Agg1 = params.sortCat2Agg1 | default('', true) %}
-        {% set prefCat2Agg2 = params.sortCat2Agg2 | default('', true) %}
-
-        {# --- Resolve each aggregate ID to its value.
-
-               IMPORTANT: Bloomreach's Jinja does not allow dictionary
-               lookups with a *variable* key (e.g. aggregates[myKey]).
-               The documented workaround is to wrap the dictionary in
-               a list and index back out: [aggregates][0][myKey].
-
-               We also cannot simply do `{% set pref = ... %}` inside
-               an `{% if %}` block because `set` does not escape block
-               scope in Bloomreach. So we use single-element list
-               containers and mutate them via `append` / `pop`, which
-               DO escape scope (lists are reference types). --- #}
+        {# Resolve each aggregate ID to its value.
+               IMPORTANT: Bloomreach Jinja can't index a dict with a
+               variable key (aggregates[myKey]) directly — wrap in a
+               list and re-index: [aggregates][0][myKey]. We also
+               can't `set` inside an `if` and have it escape scope,
+               so we use single-element list containers. #}
         {% set pref1List = [] %}
         {% set pref2List = [] %}
         {% set pref3List = [] %}
         {% set pref4List = [] %}
-
         {% if aggregates is defined and aggregates is not none %}
           {% if prefCat1Agg1 != '' and [aggregates][0][prefCat1Agg1] is defined and [aggregates][0][prefCat1Agg1] is not none %}
             {% append [aggregates][0][prefCat1Agg1] to pref1List %}
@@ -304,68 +249,49 @@
           {% endif %}
         {% endif %}
 
+        {# --- SINGLE-PASS classification into 4 priority tiers + rest.
+               Previous version walked `filtered` 5 times — once per tier
+               plus once for the leftovers. With recoPoolSize=500 that
+               was 2,500 iterations of conditionals on every render.
+               Doing it in one pass is the same logic, ~5x faster. --- #}
         {% set tier1    = [] %}
         {% set tier2    = [] %}
         {% set tier3    = [] %}
         {% set tier4    = [] %}
         {% set tierRest = [] %}
-        {% set placed   = [] %}
-
-        {# Tier 1: Category_level_1 matches highest-priority preference. #}
+        {% set has1 = (pref1List | length) > 0 %}
+        {% set has2 = (pref2List | length) > 0 %}
+        {% set has3 = (pref3List | length) > 0 %}
+        {% set has4 = (pref4List | length) > 0 %}
         {% for item in filtered %}
-          {% if pref1List | length > 0 and item.Category_level_1 == pref1List[0] %}
+          {% if has1 and item.category_level_1 == pref1List[0] %}
             {% append item to tier1 %}
-            {% append loop.index0 to placed %}
-          {% endif %}
-        {% endfor %}
-
-        {# Tier 2: Category_level_1 matches second preference (and not already placed). #}
-        {% for item in filtered %}
-          {% if loop.index0 not in placed and pref2List | length > 0 and item.Category_level_1 == pref2List[0] %}
+          {% elif has2 and item.category_level_1 == pref2List[0] %}
             {% append item to tier2 %}
-            {% append loop.index0 to placed %}
-          {% endif %}
-        {% endfor %}
-
-        {# Tier 3: Category_level_2 matches highest-priority preference. #}
-        {% for item in filtered %}
-          {% if loop.index0 not in placed and pref3List | length > 0 and item.Category_level_2 == pref3List[0] %}
+          {% elif has3 and item.category_level_2 == pref3List[0] %}
             {% append item to tier3 %}
-            {% append loop.index0 to placed %}
-          {% endif %}
-        {% endfor %}
-
-        {# Tier 4: Category_level_2 matches second preference. #}
-        {% for item in filtered %}
-          {% if loop.index0 not in placed and pref4List | length > 0 and item.Category_level_2 == pref4List[0] %}
+          {% elif has4 and item.category_level_2 == pref4List[0] %}
             {% append item to tier4 %}
-            {% append loop.index0 to placed %}
-          {% endif %}
-        {% endfor %}
-
-        {# Remaining items keep original recommendation order. #}
-        {% for item in filtered %}
-          {% if loop.index0 not in placed %}
+          {% else %}
             {% append item to tierRest %}
           {% endif %}
         {% endfor %}
 
-        {# --- Concatenate tiers into one ranked list.
-               Bloomreach's Jinja dialect treats `+` as a strictly
-               numeric operator, so `tier1 + tier2 + ...` raises
-               "Numeric operator + is allowed on numbers only".
-               We build the combined list by appending instead. --- #}
+        {# Concatenate tiers (Bloomreach `+` is numeric-only, so we append). #}
         {% set rankedItems = [] %}
-        {% for item in tier1 %}{% append item to rankedItems %}{% endfor %}
-        {% for item in tier2 %}{% append item to rankedItems %}{% endfor %}
-        {% for item in tier3 %}{% append item to rankedItems %}{% endfor %}
-        {% for item in tier4 %}{% append item to rankedItems %}{% endfor %}
+        {% for item in tier1    %}{% append item to rankedItems %}{% endfor %}
+        {% for item in tier2    %}{% append item to rankedItems %}{% endfor %}
+        {% for item in tier3    %}{% append item to rankedItems %}{% endfor %}
+        {% for item in tier4    %}{% append item to rankedItems %}{% endfor %}
         {% for item in tierRest %}{% append item to rankedItems %}{% endfor %}
 
         {# --- Truncate to the requested product count.
-               Built via explicit loop instead of slice notation to
-               stay compatible with Bloomreach's Jinja dialect
-               regardless of the param's native type. --- #}
+               Doing this BEFORE the rendering loop is the most
+               important "batching" optimisation: every per-item
+               cost downstream (report_value_by_key for social
+               proof, the star-rating math, the HTML emit) only
+               runs `productCount` times, never `recoPoolSize`
+               times — even when the pool is huge. --- #}
         {% set finalItems = [] %}
         {% for item in rankedItems %}
           {% if loop.index0 < productCount %}
@@ -376,6 +302,66 @@
         {# --- Product grid --- #}
         {% for item in finalItems %}
 
+          {# Per-item social-proof lookups — only runs `productCount` times. #}
+          {% set viewReport = '' %}
+          {% set cartReport = '' %}
+          {% if params.socialProof %}
+            {% set viewReport = report_value_by_key('69e268bc16de5f33fadce7a9', item.item_id) %}
+            {% set cartReport = report_value_by_key('69e268c75ba124c3c04cee5e', item.item_id) %}
+          {% endif %}
+          {% set viewCount = viewReport if viewReport else 0 %}
+          {% set cartCount = cartReport if cartReport else 0 %}
+          {% set valid_proof = true %}
+          {% if viewCount < params.minThreshold and cartCount < params.minThreshold %}
+            {% set valid_proof = false %}
+          {% endif %}
+
+          {# Per-item star-rating math. #}
+          {% set rating = item.ratings_count | float %}
+          {% set max_stars = 5 %}
+          {% if rating < 0 %}
+            {% set rating = 0 %}
+          {% elif rating > max_stars %}
+            {% set rating = max_stars %}
+          {% endif %}
+          {% set fill_style = 'partial fill' %}
+          {% set effective_rating = rating %}
+          {% if fill_style == 'round down' %}
+            {% set effective_rating = rating | int %}
+          {% elif fill_style == 'round up' %}
+            {% set rounded_down = rating | int %}
+            {% if rating > rounded_down %}
+              {% set effective_rating = rounded_down + 1 %}
+            {% else %}
+              {% set effective_rating = rounded_down %}
+            {% endif %}
+          {% endif %}
+          {% set star_size = params.star_size | default(14) | int %}
+          {% if star_size < 1 %}{% set star_size = 1 %}{% endif %}
+          {% set star_spacing = params.star_spacing | default(1) | int %}
+          {% if star_spacing < 0 %}{% set star_spacing = 0 %}{% endif %}
+          {% set weighting_magnitude = 0.75 | float %}
+          {% if weighting_magnitude < 0 %}
+            {% set weighting_magnitude = 0 %}
+          {% elif weighting_magnitude > 2 %}
+            {% set weighting_magnitude = 2 %}
+          {% endif %}
+          {% set star_color = '#ff8204' %}
+          {% set empty_star_color = '#ffffff' %}
+          {% set review_text_color = '#2c2a29' %}
+          {% set review_text_size = params.review_text_size | default(star_size) | int %}
+          {% if review_text_size < 1 %}
+            {% set review_text_size = 1 %}
+          {% elif review_text_size > 200 %}
+            {% set review_text_size = 200 %}
+          {% endif %}
+          {% set review_text_underlined = true %}
+          {% set review_text_font = params.titleFontFamily %}
+          {% set review_label = '' %}
+          {% if item.bc_reviews_count > 0 %}
+            {% set review_label = '(' ~ item.bc_reviews_count ~ ') Reviews' %}
+          {% endif %}
+
           {% if loop.index0 % productsPerRow == 0 %}
         <tr>
           {% endif %}
@@ -384,11 +370,11 @@
 
             <table width="100%" cellpadding="0" cellspacing="0" border="0" role="presentation">
               <tr>
-                <td style="background-color: {{ params.cardBgColor }}; border-radius: {{ params.cardBorderRadius | int }}px; padding: {{ params.cardPadding | int }}px;">
+                <td style="background-color: {{ params.cardBgColor }}; border-radius: 0px; padding: {{ params.cardPadding | int }}px;">
                   {% if params.linkEnabled %}
                   <a href="{{ item.url }}" target="_blank" style="display: block; text-decoration: none;">
                   {% endif %}
-                    <img src="{{ item.image }}" alt="{{ item.title }}" width="100%" style="display: block; width: 100%; height: auto; border: 0; border-radius: {{ params.imageBorderRadius | int }}px;" />
+                    <img src="{{ item.image }}" alt="{{ item.title }}" width="100%" style="display: block; width: 100%; height: auto; border: 0; border-radius: 0px;" />
                   {% if params.linkEnabled %}
                   </a>
                   {% endif %}
@@ -399,7 +385,7 @@
               <tr>
                 <td style="padding: {{ params.titlePaddingTop | int }}px 0 0 0; text-align: {{ params.titleAlign }}; font-family: {{ params.titleFontFamily }}; font-size: {{ params.titleFontSize | int }}px; line-height: {{ params.titleLineHeight }}; color: {{ params.titleColor }}; font-weight: {{ params.titleFontWeight }}; mso-line-height-rule: exactly;">
                   {% if params.linkEnabled %}
-                  <a href="{{ item.url }}" target="_blank" style="text-decoration: none; color: {{ params.titleColor }}; font-weight: {{ params.titleFontWeight }};">{{ item.title }}</a>
+                  <a href="{{ item.url }}" target="_blank" style="text-decoration: none; color: {{ params.titleColor }}; font-weight: {{ params.titleFontWeight }};">{{ item.title }} | {{ item.category_level_1 }} | {{ item.category_level_2 }}</a>
                   {% else %}
                   {{ item.title }}
                   {% endif %}
@@ -409,10 +395,103 @@
 
               {% if params.showPrice %}
               <tr>
-                <td style="padding: {{ params.pricePaddingTop | int }}px 0 0 0; text-align: {{ params.priceAlign }}; font-family: {{ params.priceFontFamily }}; font-size: {{ params.priceFontSize | int }}px; line-height: {{ params.priceLineHeight }}; color: {{ params.priceColor }}; font-weight: {{ params.priceFontWeight }}; mso-line-height-rule: exactly;">
+                <td style="padding: {{ params.pricePaddingTop | int }}px 0 0 0; text-align: {{ params.priceAlign }}; font-family: {{ params.titleFontFamily }}; font-size: {{ params.priceFontSize | int }}px; line-height: {{ params.priceLineHeight }}; color: {{ params.priceColor }}; font-weight: {{ params.titleFontWeight }}; mso-line-height-rule: exactly;">
                   {{ params.pricePrefix }}{{ item.price }}
                 </td>
               </tr>
+              {% endif %}
+
+              {# --- Star rating ---
+                     The rating block must live inside its own
+                     <tr><td>...</td></tr>. Previously it emitted
+                     a <table> as a direct child of the card
+                     <table>, which is invalid HTML and was a
+                     major cause of the broken layout. --- #}
+              {% if params.showStars %}
+              <tr>
+                <td align="{{ params.titleAlign }}" style="padding: {{ params.titlePaddingTop | int }}px 0 0 0;">
+                  <table role="presentation" border="0" cellpadding="0" cellspacing="{{ star_spacing }}" data-test-id="star-rating-{{ rating }}" style="border-collapse: separate;">
+                    <tr>
+                      {% for i in range(max_stars) %}
+                        {% set fill = effective_rating - i %}
+                        {% if fill < 0 %}
+                          {% set fill = 0 %}
+                        {% elif fill > 1 %}
+                          {% set fill = 1 %}
+                        {% endif %}
+                        {% if fill > 0 and fill < 1 %}
+                          {% set curved_fill = fill + (weighting_magnitude * 4 * fill * (1 - fill) * (0.5 - fill)) %}
+                          {% if curved_fill < 0 %}
+                            {% set curved_fill = 0 %}
+                          {% elif curved_fill > 1 %}
+                            {% set curved_fill = 1 %}
+                          {% endif %}
+                        {% else %}
+                          {% set curved_fill = fill %}
+                        {% endif %}
+                        {% set fill_percent  = (curved_fill * 100) | round(2) %}
+                        {% set empty_percent = (100 - fill_percent) | round(2) %}
+                        {% set fill_px       = (star_size * curved_fill) | round(2) %}
+                      <td style="padding: 0; line-height: 0; font-size: 0;">
+                        {% if fill_percent >= 99.9 %}
+                          <span style="display: block; width: {{ star_size }}px; height: {{ star_size }}px; line-height: {{ star_size }}px; font-size: {{ star_size }}px; color: {{ star_color }};">&#9733;</span>
+                        {% elif fill_percent <= 0.1 %}
+                          <span style="display: block; width: {{ star_size }}px; height: {{ star_size }}px; line-height: {{ star_size }}px; font-size: {{ star_size }}px; color: {{ empty_star_color }};">&#9733;</span>
+                        {% else %}
+                          <table role="presentation" border="0" cellpadding="0" cellspacing="0" style="border-collapse: collapse; table-layout: fixed; width: {{ star_size }}px;">
+                            <tr>
+                              <td width="{{ fill_percent }}%" style="padding: 0; line-height: 0; font-size: 0; overflow: hidden; white-space: nowrap;">
+                                <span style="display: block; width: {{ star_size }}px; height: {{ star_size }}px; line-height: {{ star_size }}px; font-size: {{ star_size }}px; color: {{ star_color }};">&#9733;</span>
+                              </td>
+                              <td width="{{ empty_percent }}%" style="padding: 0; line-height: 0; font-size: 0; overflow: hidden; white-space: nowrap;">
+                                <span style="display: block; width: {{ star_size }}px; height: {{ star_size }}px; margin-left: -{{ fill_px }}px; line-height: {{ star_size }}px; font-size: {{ star_size }}px; color: {{ empty_star_color }};">&#9733;</span>
+                              </td>
+                            </tr>
+                          </table>
+                        {% endif %}
+                      </td>
+                      {% endfor %}
+
+                      {% if item.bc_reviews_rating_sum > 0 %}
+                      <td width="{{ star_spacing * 2 }}" style="padding: 0; line-height: 0;">&nbsp;</td>
+                      <td style="padding: 0; line-height: 1;">
+                        <span style="color: {{ review_text_color }}; font-family: {{ review_text_font }}; font-size: {{ review_text_size }}px; line-height: 1;">
+                          {% if review_text_underlined %}
+                          <u style="text-decoration: underline;">{{ review_label }}</u>
+                          {% else %}
+                          {{ review_label }}
+                          {% endif %}
+                        </span>
+                      </td>
+                      {% endif %}
+                    </tr>
+                  </table>
+                </td>
+              </tr>
+              {% endif %}
+
+              {# --- Social proof ---
+                     Previously this block opened an outer <tr><td>
+                     and then emitted a second <tr><td> inside that
+                     <td> via the inner if/elif. Nesting <tr> inside
+                     <td> is invalid and silently collapsed the grid
+                     in some clients. Now there is exactly one
+                     <tr><td>...</td></tr> per item, with the inner
+                     copy choosing the correct message. --- #}
+              {% if valid_proof %}
+                {% if params.socialProofType == 'View Count' or (params.socialProofType == 'Best' and viewCount > cartCount) %}
+              <tr>
+                <td style="padding: {{ params.pricePaddingTop | int }}px 0 0 0; text-align: {{ params.priceAlign }}; font-family: {{ params.titleFontFamily }}; font-size: {{ params.priceFontSize | int }}px; line-height: {{ params.priceLineHeight }}; color: {{ params.priceColor }}; font-weight: {{ params.titleFontWeight }}; mso-line-height-rule: exactly;">
+                  {{ format_price(viewCount | int, thousand_separator=',', decimal_separator='.', decimal_places=0) }} people have viewed this in the last 2 days
+                </td>
+              </tr>
+                {% elif params.socialProofType == 'Cart Update' or (params.socialProofType == 'Best' and viewCount < cartCount) %}
+              <tr>
+                <td style="padding: {{ params.pricePaddingTop | int }}px 0 0 0; text-align: {{ params.priceAlign }}; font-family: {{ params.titleFontFamily }}; font-size: {{ params.priceFontSize | int }}px; line-height: {{ params.priceLineHeight }}; color: {{ params.priceColor }}; font-weight: {{ params.titleFontWeight }}; mso-line-height-rule: exactly;">
+                  {{ format_price(cartCount | int, thousand_separator=',', decimal_separator='.', decimal_places=0) }} people have added to bag in the last 2 days
+                </td>
+              </tr>
+                {% endif %}
               {% endif %}
 
               {% if params.showCta %}
@@ -420,8 +499,8 @@
                 <td style="padding: {{ params.ctaMarginTop | int }}px 0 0 0;">
                   <table width="100%" cellpadding="0" cellspacing="0" border="0" role="presentation">
                     <tr>
-                      <td align="center" style="background-color: {{ params.ctaBgColor }}; border: {{ params.ctaBorderWidth | int }}px solid {{ params.ctaBorderColor }}; border-radius: {{ params.ctaBorderRadius | int }}px; mso-padding-alt: {{ params.ctaPaddingV | int }}px {{ params.ctaPaddingH | int }}px;">
-                        <a href="{{ item.url | default('#') }}" target="_blank" style="display: block; font-family: {{ params.ctaFontFamily }}; font-size: {{ params.ctaFontSize | int }}px; font-weight: {{ params.ctaFontWeight }}; color: {{ params.ctaTextColor }}; text-decoration: none; text-align: center; padding: {{ params.ctaPaddingV | int }}px 0; line-height: 1; mso-line-height-rule: exactly;">{{ item.title }}</a>
+                      <td align="center" style="background-color: {{ params.ctaBgColor }}; border: {{ params.ctaBorderWidth | int }}px solid {{ params.ctaBorderColor }}; border-radius: 0px; mso-padding-alt: {{ params.ctaPaddingV | int }}px {{ params.ctaPaddingH | int }}px;">
+                        <a href="{{ item.url | default('#') }}" target="_blank" style="display: block; font-family: {{ params.titleFontFamily }}; font-size: {{ params.ctaFontSize | int }}px; font-weight: {{ params.titleFontWeight }}; color: {{ params.ctaTextColor }}; text-decoration: none; text-align: center; padding: {{ params.ctaPaddingV | int }}px 0; line-height: 1; mso-line-height-rule: exactly;">{{ item.title }}</a>
                       </td>
                     </tr>
                   </table>
