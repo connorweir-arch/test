@@ -285,13 +285,20 @@
           {% set rating = item.ratings_count | float %}
           {% if rating < 0 %}{% set rating = 0 %}{% elif rating > max_stars %}{% set rating = max_stars %}{% endif %}
 
-          {# --- Per-item flag decision (Low Stock wins over New In). --- #}
-          {% set flagText = '' %}
+          {# --- Per-item flag decision (Low Stock wins over New In).
+                 IMPORTANT: Bloomreach's `{% set %}` does not escape
+                 block scope — assigning `flagText` inside an `{% if %}`
+                 has no effect outside it. We use a single-element list
+                 (`flagBox`) and `append`, because list mutations DO
+                 escape scope (lists are reference types). Same pattern
+                 as the `pref*List` containers above. --- #}
+          {% set flagBox = [] %}
           {% if params.showLowStockFlag and item.stock_level is defined and item.stock_level is not none and (item.stock_level | int) < lowStockMax %}
-            {% set flagText = 'Low Stock' %}
+            {% append 'Low Stock' to flagBox %}
           {% elif params.showNewInFlag and item.date_added is defined and item.date_added is not none and (item.date_added | int) >= newInCutoff %}
-            {% set flagText = 'New In' %}
+            {% append 'New In' to flagBox %}
           {% endif %}
+          {% set hasFlag = (flagBox | length) > 0 %}
 
           {% if loop.index0 % productsPerRow == 0 %}
         <tr>
@@ -307,13 +314,13 @@
 
               {# --- Flag row (always present when equalH so cards stay aligned;
                      when equalH is false we collapse to nothing). --- #}
-              {% if flagText != '' %}
+              {% if hasFlag %}
               <tr>
                 <td align="left" style="padding: {{ params.cardPadding | int }}px {{ params.cardPadding | int }}px 0 {{ params.cardPadding | int }}px;">
                   <table role="presentation" border="0" cellpadding="0" cellspacing="0" style="border-collapse: separate;">
                     <tr>
                       <td style="background-color: {{ params.flagBgColor | default('#1a73e8') }}; color: {{ params.flagTextColor | default('#ffffff') }}; font-family: {{ params.titleFontFamily }}; font-size: {{ (params.titleFontSize | int) - 1 }}px; font-weight: {{ params.titleFontWeight }}; line-height: 1; padding: 6px 10px; border-radius: 3px; mso-line-height-rule: exactly;">
-                        {{ flagText }}
+                        {{ flagBox[0] }}
                       </td>
                     </tr>
                   </table>
