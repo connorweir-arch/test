@@ -126,8 +126,13 @@
 {% set cellWidth      = (100 / productsPerRow) | round(2) %}
 {% set halfGap        = (cardGapInt / 2) | round | int %}
 
-{# --- "New In" cutoff: now() epoch minus newInDays * 86400. --- #}
-{% set newInCutoff = (now() | int) - (newInDays * 86400) %}
+{# --- "New In" cutoff.
+       Bloomreach exposes the current Unix epoch as the context
+       VARIABLE `time` — it is NOT a function. Writing `time()`
+       (or `now()`) attempts to call a float and raises:
+           'float' object has no attribute '__call__'
+       Reference it without parentheses. --- #}
+{% set newInCutoff = (time | int) - (newInDays * 86400) %}
 
 
 {# --- Mobile responsive styles (single line per Jinja tag — do NOT format). --- #}
