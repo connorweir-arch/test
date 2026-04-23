@@ -111,6 +111,16 @@
    ── Mobile ──────────────────────────────────────────
    mobileStack            boolean   true
    mobileBreakpoint       number    480
+
+   ── Debug ───────────────────────────────────────────
+   debug                  boolean   false   (echoes raw item field
+                                             values into HTML
+                                             comments inside each
+                                             card — view source in
+                                             the email preview to
+                                             see what the catalog
+                                             is actually handing
+                                             the template)
    =========================================================== #}
 
 
@@ -119,10 +129,15 @@
 {% set productsPerRow = params.productsPerRow | int %}
 {% set recoPoolSize   = params.recoPoolSize   | int %}
 {% set cardGapInt     = params.cardGap        | int %}
-{% set rowGap         = params.rowGap         | default(8) | int %}
-{% set imgHeight      = params.imageHeight    | default(0) | int %}
-{% set lowStockMax    = params.lowStockThreshold | default(10) | int %}
-{% set newInDays      = params.newInDays      | default(7) | int %}
+{# The `, true` in default(...) is critical — without it, default
+   only fires on UNDEFINED, not on empty strings. Bloomreach number
+   params hand back '' when blank, so default(10) leaves '' alone
+   and `'' | int` becomes 0, silently breaking comparisons. With
+   `, true` the default also fires on '' / 0 / false / None. #}
+{% set rowGap         = params.rowGap            | default(8,  true) | int %}
+{% set imgHeight      = params.imageHeight       | default(0,  true) | int %}
+{% set lowStockMax    = params.lowStockThreshold | default(10, true) | int %}
+{% set newInDays      = params.newInDays         | default(7,  true) | int %}
 {% set cellWidth      = (100 / productsPerRow) | round(2) %}
 {% set halfGap        = (cardGapInt / 2) | round | int %}
 
@@ -286,19 +301,46 @@
           {% if rating < 0 %}{% set rating = 0 %}{% elif rating > max_stars %}{% set rating = max_stars %}{% endif %}
 
           {# --- Per-item flag decision (Low Stock wins over New In).
-                 IMPORTANT: Bloomreach's `{% set %}` does not escape
-                 block scope — assigning `flagText` inside an `{% if %}`
-                 has no effect outside it. We use a single-element list
-                 (`flagBox`) and `append`, because list mutations DO
-                 escape scope (lists are reference types). Same pattern
-                 as the `pref*List` containers above. --- #}
+
+                 Two Bloomreach gotchas combined to make this fail
+                 silently before:
+
+                 1) `{% set %}` inside `{% if %}` does not escape
+                    scope — fixed previously by switching to a
+                    single-element list (`flagBox`) and `append`.
+
+                 2) `item.<attr> is defined` on a catalog item does
+                    NOT behave like a normal Jinja `is defined`
+                    test. Catalog items are a wrapper object, and
+                    the test can short-circuit the whole `and`
+                    chain to false even when the attribute exists
+                    and has a value. The convention used elsewhere
+                    in this same file (see the stars block:
+                    `item.bc_reviews_count and item.bc_reviews_count > 0`)
+                    is plain truthiness. We follow that here.
+
+                 Stock check uses `<= lowStockMax` rather than `<`
+                 so an item with stock_level == lowStockMax also
+                 trips the warning (matches the typical "≤ 10
+                 left" reading). Flip back to `<` if you want
+                 strict "less than". --- #}
           {% set flagBox = [] %}
-          {% if params.showLowStockFlag and item.stock_level is defined and item.stock_level is not none and (item.stock_level | int) < lowStockMax %}
+          {% set stockN  = item.stock_level | int %}
+          {% set addedN  = item.date_added  | int %}
+          {% if params.showLowStockFlag and stockN > 0 and stockN <= lowStockMax %}
             {% append 'Low Stock' to flagBox %}
-          {% elif params.showNewInFlag and item.date_added is defined and item.date_added is not none and (item.date_added | int) >= newInCutoff %}
+          {% elif params.showNewInFlag and addedN > 0 and addedN >= newInCutoff %}
             {% append 'New In' to flagBox %}
           {% endif %}
           {% set hasFlag = (flagBox | length) > 0 %}
+
+          {# Optional debug echo — set params.debug = true to print
+             the raw field values into the card so you can see what
+             Bloomreach is actually handing you. Remove or set
+             debug=false once everything is working. #}
+          {% if params.debug %}
+          <!-- DEBUG item={{ item.item_id }} stock_level={{ item.stock_level }} -> {{ stockN }} (max {{ lowStockMax }}) | date_added={{ item.date_added }} -> {{ addedN }} (cutoff {{ newInCutoff }}) | flag='{{ flagBox[0] | default('', true) }}' -->
+          {% endif %}
 
           {% if loop.index0 % productsPerRow == 0 %}
         <tr>
