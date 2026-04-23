@@ -1,61 +1,136 @@
 {# ===========================================================
-   BLOOMREACH PRODUCT RECOMMENDATIONS BLOCK — V2
+   BLOOMREACH PRODUCT RECOMMENDATIONS BLOCK — V2.1
 
-   Same parameters and visual output as V1, but rewritten
-   for speed. Designed to render without timing out at
-   recoPoolSize values that previously failed.
-
-   What's different vs V1
+   Changes vs V2 baseline
    ──────────────────────
-   1. Two reco calls instead of one:
-        a) primary  : fill_with_random = false  (real recs only)
-        b) fallback : fill_with_random = true   (only if (a) didn't
-           return enough items to satisfy productCount AFTER
-           filtering — saves an entire engine call most of the time)
-      Items from (a) are kept; (b) only top-up dedup'd by item_id.
+   1. Stock / Recency flag pill in the top-left of each card
+      (e.g. "Low Stock" / "New In") with togglable params and
+      configurable colours. Priority is Low Stock > New In.
+      When equalCardHeights is on, the flag row is reserved
+      space even on cards with no flag, so alignment holds.
 
-   2. Filter + 4-tier preference sort + truncate is now a SINGLE
-      pass. We classify each item and stop the moment all needed
-      tiers are full. Worst case it's one walk over the pool, not
-      five — and best case it exits early.
+   2. Parameter consolidation (now ~46 params, was 49):
+        ─ blockPaddingTop/Bottom    → blockPaddingV
+        ─ blockPaddingLeft/Right    → blockPaddingH
+        ─ titlePaddingTop / pricePaddingTop / ctaMarginTop
+                                    → rowGap (single value)
+        ─ priceAlign                → uses titleAlign
+        ─ priceLineHeight           → uses titleLineHeight
+        ─ ctaPaddingV / ctaPaddingH → ctaPadding (single value)
+        ─ review_text_size          → uses star_size
+      Phantom params (declared in old guide, never referenced
+      in code) are also removed: priceFontFamily, ctaFontFamily,
+      ctaFontWeight, ctaText, ctaUrl, ctaAlign, cardBorderRadius,
+      imageBorderRadius, ctaBorderRadius, fillWithRandom,
+      titleFontWeight is kept, sort aggregates remain hardcoded.
 
-   3. Per-item heavy work (report_value_by_key, star math, social
-      proof) only runs for items that are actually rendered
-      (productCount of them), never for the discarded pool.
-
-   4. Stripped redundant {% set %} initialisations and dead
-      branches (e.g. the unused fill_style "round up" / "round
-      down" branches — only "partial fill" is ever used).
-
-   5. Star rating uses a compact loop with the curve math
-      simplified.
-
-   6. Inline thousands-formatter (no macro) — same output, but
-      no macro frame on the call stack per-item.
-
-   RECOMMENDATION ENGINE ID
-   ────────────────────────
-   The reco model ID still has to be a Jinja constant. Both
-   calls below use `params.recommendation` — change there if you
-   need to swap engines.
+   3. Equal-height card layout:
+        ─ Inner card <table> is height: 100%.
+        ─ A height: 100% spacer <tr> sits between the variable
+          content and the CTA, pushing the CTA to the bottom of
+          the tallest card in the row. Result: CTAs always
+          line up across a row, even when one card has stars +
+          social proof and the next has neither.
+        ─ Optional imageHeight param uses object-fit: cover to
+          force image bottoms to line up too. Leave as 0 to keep
+          natural aspect ratios.
    =========================================================== #}
 
 
 {# ===========================================================
-   PARAMETER SETUP GUIDE  (unchanged from V1)
+   PARAMETER SETUP GUIDE  (V2.1)
+
+   ── Recommendation ──────────────────────────────────
+   recommendation         string    <reco engine ID>
+   productCount           number    2
+   recoPoolSize           number    50
+
+   ── Filtering ───────────────────────────────────────
+   filterCategory1        string    (empty)
+   filterCategory2        string    (empty)
+
+   ── Layout ──────────────────────────────────────────
+   productsPerRow         number    2
+   blockMaxWidth          number    600
+   blockBgColor           color     #ffffff
+   blockPaddingV          number    20      (top + bottom)
+   blockPaddingH          number    10      (left + right)
+   cardGap                number    16      (between cards)
+   rowGap                 number    8       (between rows inside a card)
+   equalCardHeights       boolean   true    (CTAs aligned across a row)
+
+   ── Product Card ────────────────────────────────────
+   cardBgColor            color     #ede0d4
+   cardPadding            number    15
+   imageHeight            number    0       (0 = natural, otherwise px with object-fit: cover)
+   linkEnabled            boolean   true
+
+   ── Flag / Badge ────────────────────────────────────
+   showLowStockFlag       boolean   true
+   showNewInFlag          boolean   true
+   lowStockThreshold      number    10      (item.stock_level < this → Low Stock)
+   newInDays              number    7       (item.date_added within last N days → New In)
+   flagBgColor            color     #1a73e8
+   flagTextColor          color     #ffffff
+
+   ── Product Title ───────────────────────────────────
+   showTitle              boolean   true
+   titleFontFamily        string    Arial, Helvetica, sans-serif
+   titleFontSize          number    13
+   titleColor             color     #333333
+   titleFontWeight        string    normal
+   titleAlign             enum      center  (left, center, right) — also used by price + proof
+   titleLineHeight        string    1.4
+
+   ── Product Price ───────────────────────────────────
+   showPrice              boolean   false
+   priceColor             color     #333333
+   priceFontSize          number    14
+   priceFontWeight        string    bold
+   pricePrefix            string    £
+
+   ── Star Rating ─────────────────────────────────────
+   showStars              boolean   true
+   star_size              number    14
+   star_spacing           number    1
+
+   ── Social Proof ────────────────────────────────────
+   socialProof            boolean   true
+   socialProofType        enum      Best   (View Count, Cart Update, Best)
+   minThreshold           number    100
+
+   ── CTA Button ──────────────────────────────────────
+   showCta                boolean   true
+   ctaBgColor             color     #ffffff
+   ctaTextColor           color     #d4483b
+   ctaBorderColor         color     #d4483b
+   ctaBorderWidth         number    1
+   ctaPadding             number    12      (vertical = horizontal)
+   ctaFontSize            number    14
+
+   ── Mobile ──────────────────────────────────────────
+   mobileStack            boolean   true
+   mobileBreakpoint       number    480
    =========================================================== #}
 
 
-{# --- Numeric coercion (cheap, but spares us repeated `| int` calls in markup). --- #}
+{# --- Numeric coercion --- #}
 {% set productCount   = params.productCount   | int %}
 {% set productsPerRow = params.productsPerRow | int %}
 {% set recoPoolSize   = params.recoPoolSize   | int %}
 {% set cardGapInt     = params.cardGap        | int %}
-{% set cellWidth = (100 / productsPerRow) | round(2) %}
-{% set halfGap   = (cardGapInt / 2) | round | int %}
+{% set rowGap         = params.rowGap         | default(8) | int %}
+{% set imgHeight      = params.imageHeight    | default(0) | int %}
+{% set lowStockMax    = params.lowStockThreshold | default(10) | int %}
+{% set newInDays      = params.newInDays      | default(7) | int %}
+{% set cellWidth      = (100 / productsPerRow) | round(2) %}
+{% set halfGap        = (cardGapInt / 2) | round | int %}
+
+{# --- "New In" cutoff: now() epoch minus newInDays * 86400. --- #}
+{% set newInCutoff = (now() | int) - (newInDays * 86400) %}
 
 
-{# --- Mobile responsive styles (single line per Jinja tag — do NOT format!). --- #}
+{# --- Mobile responsive styles (single line per Jinja tag — do NOT format). --- #}
 {% if params.mobileStack %}
 <style type="text/css">
   @media only screen and (max-width: {{ params.mobileBreakpoint | int }}px) {
@@ -78,9 +153,6 @@
 
 {# ===========================================================
    STEP 1 — Reco fetch (two-stage, lazy)
-   ─ Primary call: real recommendations only.
-   ─ Fallback call: only fired if we didn't get enough usable
-     items after filtering. Most renders skip it entirely.
    =========================================================== #}
 
 {% set recoPool = [] %}
@@ -97,16 +169,9 @@
 
 
 {# ===========================================================
-   STEP 2 — Filter + classify into preference tiers in ONE pass
-   ─ Tier 1 : Category_level_1 == aggregate sortCat1Agg1
-   ─ Tier 2 : Category_level_1 == aggregate sortCat1Agg2
-   ─ Tier 3 : Category_level_2 == aggregate sortCat2Agg1
-   ─ Tier 4 : Category_level_2 == aggregate sortCat2Agg2
-   ─ Rest   : everything else (keeps reco order)
+   STEP 2 — Filter + classify into preference tiers (one pass)
    =========================================================== #}
 
-{# Resolve aggregate IDs once. (Same hardcoded IDs as V1 — move
-   to params.* if/when you need them per-template.) #}
 {% set prefCat1Agg1 = '699de5d3269674d63640b237' %}
 {% set prefCat1Agg2 = '699de5d0aafd3527a7a14ccc' %}
 {% set prefCat2Agg1 = '699de5d209c6819bb2bf270b' %}
@@ -120,7 +185,6 @@
   {% if [aggregates][0][prefCat2Agg2] is defined and [aggregates][0][prefCat2Agg2] is not none %}{% set pref4 = [aggregates][0][prefCat2Agg2] %}{% endif %}
 {% endif %}
 
-{# Classify primary pool. #}
 {% set tier1 = [] %}{% set tier2 = [] %}{% set tier3 = [] %}{% set tier4 = [] %}{% set tierR = [] %}
 {% set fc1 = params.filterCategory1 | default('', true) %}
 {% set fc2 = params.filterCategory2 | default('', true) %}
@@ -141,11 +205,6 @@
 
 {# ===========================================================
    STEP 3 — Fallback reco call (only if needed)
-   ─ Fires ONLY when the primary call (after filtering) didn't
-     give us enough items to fill productCount. This is the
-     entire point of the two-call pattern: the random-fill
-     engine call is the slow one, so we skip it whenever the
-     real recs already satisfy demand.
    =========================================================== #}
 
 {% if primaryTotal < productCount %}
@@ -169,9 +228,7 @@
 
 
 {# ===========================================================
-   STEP 4 — Build finalItems with early exit at productCount
-   ─ As soon as we have productCount items we stop appending.
-     Avoids building a full ranked list when we only show 2.
+   STEP 4 — finalItems (early exit at productCount)
    =========================================================== #}
 
 {% set finalItems = [] %}
@@ -186,7 +243,6 @@
    STEP 5 — Render
    =========================================================== #}
 
-{# Constants we'd otherwise compute per-item. #}
 {% set max_stars            = 5 %}
 {% set star_size            = params.star_size | default(14) | int %}
 {% set star_spacing         = params.star_spacing | default(1) | int %}
@@ -194,12 +250,15 @@
 {% set star_color           = '#ff8204' %}
 {% set empty_star_color     = '#ffffff' %}
 {% set review_text_color    = '#2c2a29' %}
-{% set review_text_size     = params.review_text_size | default(star_size) | int %}
-{% set review_text_font     = params.titleFontFamily %}
+
+{# Equal-height layout uses height:100% on the card table + a spacer row before the CTA. #}
+{% set equalH = params.equalCardHeights | default(true) %}
+{% set cardTableHeightAttr = 'height="100%"' if equalH else '' %}
+{% set cardTableHeightCss  = 'height: 100%;' if equalH else '' %}
 
 <table width="100%" cellpadding="0" cellspacing="0" border="0" role="presentation" style="background-color: {{ params.blockBgColor }};">
   <tr>
-    <td align="center" style="padding: {{ params.blockPaddingTop | int }}px {{ params.blockPaddingRight | int }}px {{ params.blockPaddingBottom | int }}px {{ params.blockPaddingLeft | int }}px;">
+    <td align="center" style="padding: {{ params.blockPaddingV | int }}px {{ params.blockPaddingH | int }}px;">
 
       <!--[if mso]><table width="{{ params.blockMaxWidth | int }}" cellpadding="0" cellspacing="0" border="0" role="presentation" align="center"><tr><td><![endif]-->
 
@@ -207,7 +266,7 @@
 
         {% for item in finalItems %}
 
-          {# --- Per-item social proof (only runs productCount times). --- #}
+          {# --- Per-item social proof. --- #}
           {% set viewCount = 0 %}{% set cartCount = 0 %}
           {% if params.socialProof %}
             {% set vr = report_value_by_key('69e268bc16de5f33fadce7a9', item.item_id) %}
@@ -217,9 +276,17 @@
           {% endif %}
           {% set valid_proof = (viewCount >= params.minThreshold) or (cartCount >= params.minThreshold) %}
 
-          {# --- Per-item star math (clamped 0..max_stars). --- #}
+          {# --- Per-item star math. --- #}
           {% set rating = item.ratings_count | float %}
           {% if rating < 0 %}{% set rating = 0 %}{% elif rating > max_stars %}{% set rating = max_stars %}{% endif %}
+
+          {# --- Per-item flag decision (Low Stock wins over New In). --- #}
+          {% set flagText = '' %}
+          {% if params.showLowStockFlag and item.stock_level is defined and item.stock_level is not none and (item.stock_level | int) < lowStockMax %}
+            {% set flagText = 'Low Stock' %}
+          {% elif params.showNewInFlag and item.date_added is defined and item.date_added is not none and (item.date_added | int) >= newInCutoff %}
+            {% set flagText = 'New In' %}
+          {% endif %}
 
           {% if loop.index0 % productsPerRow == 0 %}
         <tr>
@@ -227,26 +294,59 @@
 
           <td class="reco-product-cell" width="{{ cellWidth }}%" valign="top" style="padding: {{ halfGap }}px;">
 
-            <table width="100%" cellpadding="0" cellspacing="0" border="0" role="presentation">
+            {# Inner card table — height:100% so all cards in this row equalise.
+               That, combined with the height:100% spacer row before the CTA,
+               is what keeps CTAs aligned across the row regardless of variable
+               title / star / social-proof content. #}
+            <table width="100%" {{ cardTableHeightAttr }} cellpadding="0" cellspacing="0" border="0" role="presentation" style="{{ cardTableHeightCss }} background-color: {{ params.cardBgColor }};">
+
+              {# --- Flag row (always present when equalH so cards stay aligned;
+                     when equalH is false we collapse to nothing). --- #}
+              {% if flagText != '' %}
               <tr>
-                <td style="background-color: {{ params.cardBgColor }}; border-radius: 0px; padding: {{ params.cardPadding | int }}px;">
+                <td align="left" style="padding: {{ params.cardPadding | int }}px {{ params.cardPadding | int }}px 0 {{ params.cardPadding | int }}px;">
+                  <table role="presentation" border="0" cellpadding="0" cellspacing="0" style="border-collapse: separate;">
+                    <tr>
+                      <td style="background-color: {{ params.flagBgColor | default('#1a73e8') }}; color: {{ params.flagTextColor | default('#ffffff') }}; font-family: {{ params.titleFontFamily }}; font-size: {{ (params.titleFontSize | int) - 1 }}px; font-weight: {{ params.titleFontWeight }}; line-height: 1; padding: 6px 10px; border-radius: 3px; mso-line-height-rule: exactly;">
+                        {{ flagText }}
+                      </td>
+                    </tr>
+                  </table>
+                </td>
+              </tr>
+              {% elif equalH %}
+              <tr>
+                <td style="padding: {{ params.cardPadding | int }}px {{ params.cardPadding | int }}px 0 {{ params.cardPadding | int }}px; line-height: 0; font-size: 0;">
+                  {# Empty spacer matches the height of a flag pill (~24px) so cards align. #}
+                  <div style="height: 24px; line-height: 0; font-size: 0;">&nbsp;</div>
+                </td>
+              </tr>
+              {% endif %}
+
+              {# --- Image row. --- #}
+              <tr>
+                <td style="padding: {{ rowGap }}px {{ params.cardPadding | int }}px 0 {{ params.cardPadding | int }}px;">
                   {% if params.linkEnabled %}<a href="{{ item.url }}" target="_blank" style="display: block; text-decoration: none;">{% endif %}
-                    <img src="{{ item.image }}" alt="{{ item.title }}" width="100%" style="display: block; width: 100%; height: auto; border: 0; border-radius: 0px;" />
+                  {% if imgHeight > 0 %}
+                    <img src="{{ item.image }}" alt="{{ item.title }}" width="100%" height="{{ imgHeight }}" style="display: block; width: 100%; height: {{ imgHeight }}px; object-fit: cover; border: 0;" />
+                  {% else %}
+                    <img src="{{ item.image }}" alt="{{ item.title }}" width="100%" style="display: block; width: 100%; height: auto; border: 0;" />
+                  {% endif %}
                   {% if params.linkEnabled %}</a>{% endif %}
                 </td>
               </tr>
 
               {% if params.showTitle %}
               <tr>
-                <td style="padding: {{ params.titlePaddingTop | int }}px 0 0 0; text-align: {{ params.titleAlign }}; font-family: {{ params.titleFontFamily }}; font-size: {{ params.titleFontSize | int }}px; line-height: {{ params.titleLineHeight }}; color: {{ params.titleColor }}; font-weight: {{ params.titleFontWeight }}; mso-line-height-rule: exactly;">
-                  {% if params.linkEnabled %}<a href="{{ item.url }}" target="_blank" style="text-decoration: none; color: {{ params.titleColor }}; font-weight: {{ params.titleFontWeight }};">{{ item.title }} | {{ item.category_level_1 }} | {{ item.category_level_2 }}</a>{% else %}{{ item.title }}{% endif %}
+                <td style="padding: {{ rowGap }}px {{ params.cardPadding | int }}px 0 {{ params.cardPadding | int }}px; text-align: {{ params.titleAlign }}; font-family: {{ params.titleFontFamily }}; font-size: {{ params.titleFontSize | int }}px; line-height: {{ params.titleLineHeight }}; color: {{ params.titleColor }}; font-weight: {{ params.titleFontWeight }}; mso-line-height-rule: exactly;">
+                  {% if params.linkEnabled %}<a href="{{ item.url }}" target="_blank" style="text-decoration: none; color: {{ params.titleColor }}; font-weight: {{ params.titleFontWeight }};">{{ item.title }}</a>{% else %}{{ item.title }}{% endif %}
                 </td>
               </tr>
               {% endif %}
 
               {% if params.showPrice %}
               <tr>
-                <td style="padding: {{ params.pricePaddingTop | int }}px 0 0 0; text-align: {{ params.priceAlign }}; font-family: {{ params.titleFontFamily }}; font-size: {{ params.priceFontSize | int }}px; line-height: {{ params.priceLineHeight }}; color: {{ params.priceColor }}; font-weight: {{ params.titleFontWeight }}; mso-line-height-rule: exactly;">
+                <td style="padding: {{ rowGap }}px {{ params.cardPadding | int }}px 0 {{ params.cardPadding | int }}px; text-align: {{ params.titleAlign }}; font-family: {{ params.titleFontFamily }}; font-size: {{ params.priceFontSize | int }}px; line-height: {{ params.titleLineHeight }}; color: {{ params.priceColor }}; font-weight: {{ params.priceFontWeight | default('bold') }}; mso-line-height-rule: exactly;">
                   {{ params.pricePrefix }}{{ item.price }}
                 </td>
               </tr>
@@ -254,14 +354,12 @@
 
               {% if params.showStars %}
               <tr>
-                <td align="{{ params.titleAlign }}" style="padding: {{ params.titlePaddingTop | int }}px 0 0 0;">
+                <td align="{{ params.titleAlign }}" style="padding: {{ rowGap }}px {{ params.cardPadding | int }}px 0 {{ params.cardPadding | int }}px;">
                   <table role="presentation" border="0" cellpadding="0" cellspacing="{{ star_spacing }}" style="border-collapse: separate;">
                     <tr>
                       {% for i in range(max_stars) %}
-                        {# Fill amount for this star (0..1). #}
                         {% set fill = rating - i %}
                         {% if fill < 0 %}{% set fill = 0 %}{% elif fill > 1 %}{% set fill = 1 %}{% endif %}
-                        {# Curve only applies in the partial range; full / empty stars short-circuit. #}
                         {% if fill > 0 and fill < 1 %}
                           {% set curved = fill + (weighting_magnitude * 4 * fill * (1 - fill) * (0.5 - fill)) %}
                           {% if curved < 0 %}{% set curved = 0 %}{% elif curved > 1 %}{% set curved = 1 %}{% endif %}
@@ -294,7 +392,7 @@
                       {% if item.bc_reviews_count and item.bc_reviews_count > 0 %}
                       <td width="{{ star_spacing * 2 }}" style="padding:0;line-height:0;">&nbsp;</td>
                       <td style="padding:0;line-height:1;">
-                        <span style="color:{{ review_text_color }};font-family:{{ review_text_font }};font-size:{{ review_text_size }}px;line-height:1;">
+                        <span style="color:{{ review_text_color }};font-family:{{ params.titleFontFamily }};font-size:{{ star_size }}px;line-height:1;">
                           <u style="text-decoration:underline;">({{ item.bc_reviews_count }}) Reviews</u>
                         </span>
                       </td>
@@ -305,6 +403,8 @@
               </tr>
               {% endif %}
 
+              {# --- Social-proof row. Always emitted when equalH so the row's
+                     vertical space is reserved even on items with no proof. --- #}
               {% if valid_proof %}
                 {% if params.socialProofType == 'View Count' or (params.socialProofType == 'Best' and viewCount > cartCount) %}
                   {% set proofN = viewCount %}{% set proofMsg = 'people have viewed this in the last 2 days' %}
@@ -314,25 +414,33 @@
                   {% set proofN = 0 %}{% set proofMsg = '' %}
                 {% endif %}
                 {% if proofMsg != '' %}
-                  {# Inline thousand-separator format (replaces the macro): split on '.', reverse-batch by 3, comma-join. #}
                   {% set ns = proofN | string %}
                   {% set parts = ns.split('.') %}
                   {% set whole = parts[0] | reverse | batch(3) | map('join', '') | join(',') | reverse %}
               <tr>
-                <td style="padding: {{ params.pricePaddingTop | int }}px 0 0 0; text-align: {{ params.priceAlign }}; font-family: {{ params.titleFontFamily }}; font-size: {{ params.priceFontSize | int }}px; line-height: {{ params.priceLineHeight }}; color: {{ params.priceColor }}; font-weight: {{ params.titleFontWeight }}; mso-line-height-rule: exactly;">
+                <td style="padding: {{ rowGap }}px {{ params.cardPadding | int }}px 0 {{ params.cardPadding | int }}px; text-align: {{ params.titleAlign }}; font-family: {{ params.titleFontFamily }}; font-size: {{ params.priceFontSize | int }}px; line-height: {{ params.titleLineHeight }}; color: {{ params.priceColor }}; font-weight: {{ params.titleFontWeight }}; mso-line-height-rule: exactly;">
                   {{ whole }} {{ proofMsg }}
                 </td>
               </tr>
                 {% endif %}
               {% endif %}
 
+              {# --- Spacer row that absorbs leftover height so the CTA sticks
+                     to the bottom of the card. Together with cardTable
+                     height:100%, this is what makes CTAs align across a row. --- #}
+              {% if equalH %}
+              <tr>
+                <td height="100%" style="height: 100%; line-height: 0; font-size: 0; padding: 0;">&nbsp;</td>
+              </tr>
+              {% endif %}
+
               {% if params.showCta %}
               <tr>
-                <td style="padding: {{ params.ctaMarginTop | int }}px 0 0 0;">
+                <td style="padding: {{ rowGap }}px {{ params.cardPadding | int }}px {{ params.cardPadding | int }}px {{ params.cardPadding | int }}px;">
                   <table width="100%" cellpadding="0" cellspacing="0" border="0" role="presentation">
                     <tr>
-                      <td align="center" style="background-color: {{ params.ctaBgColor }}; border: {{ params.ctaBorderWidth | int }}px solid {{ params.ctaBorderColor }}; border-radius: 0px; mso-padding-alt: {{ params.ctaPaddingV | int }}px {{ params.ctaPaddingH | int }}px;">
-                        <a href="{{ item.url | default('#') }}" target="_blank" style="display: block; font-family: {{ params.titleFontFamily }}; font-size: {{ params.ctaFontSize | int }}px; font-weight: {{ params.titleFontWeight }}; color: {{ params.ctaTextColor }}; text-decoration: none; text-align: center; padding: {{ params.ctaPaddingV | int }}px 0; line-height: 1; mso-line-height-rule: exactly;">{{ item.title }}</a>
+                      <td align="center" style="background-color: {{ params.ctaBgColor }}; border: {{ params.ctaBorderWidth | int }}px solid {{ params.ctaBorderColor }}; mso-padding-alt: {{ params.ctaPadding | int }}px {{ params.ctaPadding | int }}px;">
+                        <a href="{{ item.url | default('#') }}" target="_blank" style="display: block; font-family: {{ params.titleFontFamily }}; font-size: {{ params.ctaFontSize | int }}px; font-weight: {{ params.titleFontWeight }}; color: {{ params.ctaTextColor }}; text-decoration: none; text-align: center; padding: {{ params.ctaPadding | int }}px {{ params.ctaPadding | int }}px; line-height: 1; mso-line-height-rule: exactly;">{{ item.title }}</a>
                       </td>
                     </tr>
                   </table>
