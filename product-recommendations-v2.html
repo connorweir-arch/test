@@ -68,8 +68,17 @@
    ── Flag / Badge ────────────────────────────────────
    showLowStockFlag       boolean   true
    showNewInFlag          boolean   true
-   lowStockThreshold      number    10      (item.stock_level < this → Low Stock)
-   newInDays              number    7       (item.date_added within last N days → New In)
+   lowStockThreshold      number    10      (stock <= this → Low Stock)
+   newInDays              number    7       (date_added within last N days → New In)
+   stockFieldName         string    stock_level
+                                            Catalog field name to read for the
+                                            stock check. If your catalog calls
+                                            it `stock`, `inventory`, `qty`,
+                                            etc., type it here — no code edit
+                                            needed.
+   dateFieldName          string    date_added
+                                            Catalog field name for "New In".
+                                            Must be a Unix epoch (seconds).
    flagBgColor            color     #1a73e8
    flagTextColor          color     #ffffff
 
@@ -302,45 +311,48 @@
 
           {# --- Per-item flag decision (Low Stock wins over New In).
 
-                 Two Bloomreach gotchas combined to make this fail
-                 silently before:
+                 Field-name lookup: we read the stock & date_added
+                 fields via the [item][0][key] dict-wrap workaround
+                 (same trick used for `aggregates` higher up in the
+                 file). This means the field NAME is configurable
+                 via params.stockFieldName / params.dateFieldName
+                 — no code edit needed if your catalog calls them
+                 something other than the defaults.
 
-                 1) `{% set %}` inside `{% if %}` does not escape
-                    scope — fixed previously by switching to a
-                    single-element list (`flagBox`) and `append`.
+                 Threshold-only gate: previously this block had
+                 `stockN > 0` / `addedN > 0` self-guards intended
+                 to filter out items with missing fields. They
+                 backfired — when a field was missing or not
+                 numeric, `| int` returned 0, the `> 0` guard
+                 short-circuited, and you saw nothing. The new
+                 rule is "the threshold is the only gate". If the
+                 field is wrong, the flag will fire on EVERY item,
+                 which is loud and easy to diagnose (vs. the
+                 previous silent failure).
 
-                 2) `item.<attr> is defined` on a catalog item does
-                    NOT behave like a normal Jinja `is defined`
-                    test. Catalog items are a wrapper object, and
-                    the test can short-circuit the whole `and`
-                    chain to false even when the attribute exists
-                    and has a value. The convention used elsewhere
-                    in this same file (see the stars block:
-                    `item.bc_reviews_count and item.bc_reviews_count > 0`)
-                    is plain truthiness. We follow that here.
+                 Stock check uses `<= lowStockMax` so an item with
+                 stock == lowStockMax also trips. --- #}
+          {% set stockField = params.stockFieldName | default('stock_level', true) %}
+          {% set dateField  = params.dateFieldName  | default('date_added',  true) %}
 
-                 Stock check uses `<= lowStockMax` rather than `<`
-                 so an item with stock_level == lowStockMax also
-                 trips the warning (matches the typical "≤ 10
-                 left" reading). Flip back to `<` if you want
-                 strict "less than". --- #}
+          {% set stockRaw = '' %}
+          {% set addedRaw = '' %}
+          {% if [item][0][stockField] is defined and [item][0][stockField] is not none %}
+            {% set stockRaw = [item][0][stockField] %}
+          {% endif %}
+          {% if [item][0][dateField] is defined and [item][0][dateField] is not none %}
+            {% set addedRaw = [item][0][dateField] %}
+          {% endif %}
+          {% set stockN = stockRaw | int %}
+          {% set addedN = addedRaw | int %}
+
           {% set flagBox = [] %}
-          {% set stockN  = item.stock_level | int %}
-          {% set addedN  = item.date_added  | int %}
-          {% if params.showLowStockFlag and stockN > 0 and stockN <= lowStockMax %}
+          {% if params.showLowStockFlag and stockN <= lowStockMax %}
             {% append 'Low Stock' to flagBox %}
-          {% elif params.showNewInFlag and addedN > 0 and addedN >= newInCutoff %}
+          {% elif params.showNewInFlag and addedN >= newInCutoff %}
             {% append 'New In' to flagBox %}
           {% endif %}
           {% set hasFlag = (flagBox | length) > 0 %}
-
-          {# Optional debug echo — set params.debug = true to print
-             the raw field values into the card so you can see what
-             Bloomreach is actually handing you. Remove or set
-             debug=false once everything is working. #}
-          {% if params.debug %}
-          <!-- DEBUG item={{ item.item_id }} stock_level={{ item.stock_level }} -> {{ stockN }} (max {{ lowStockMax }}) | date_added={{ item.date_added }} -> {{ addedN }} (cutoff {{ newInCutoff }}) | flag='{{ flagBox[0] | default('', true) }}' -->
-          {% endif %}
 
           {% if loop.index0 % productsPerRow == 0 %}
         <tr>
@@ -353,6 +365,23 @@
                is what keeps CTAs aligned across the row regardless of variable
                title / star / social-proof content. #}
             <table width="100%" {{ cardTableHeightAttr }} cellpadding="0" cellspacing="0" border="0" role="presentation" style="{{ cardTableHeightCss }} background-color: {{ params.cardBgColor }};">
+
+              {# --- Visible debug panel. Set params.debug = true to
+                     dump the raw catalog values for THIS item right
+                     into the card. Easier than view-source. Turn
+                     debug back off when the flags look correct. --- #}
+              {% if params.debug %}
+              <tr>
+                <td style="padding: 8px; background: #fffbe6; border: 1px dashed #d4b106; font-family: monospace; font-size: 11px; line-height: 1.4; color: #000;">
+                  <strong>DEBUG</strong><br>
+                  item_id = {{ item.item_id }}<br>
+                  field '{{ stockField }}' raw = "{{ stockRaw }}" → int {{ stockN }} (lowStockMax = {{ lowStockMax }}) → {% if stockN <= lowStockMax %}LOW STOCK MATCH{% else %}no match{% endif %}<br>
+                  field '{{ dateField }}' raw = "{{ addedRaw }}" → int {{ addedN }} (cutoff = {{ newInCutoff }}, time = {{ time }}) → {% if addedN >= newInCutoff %}NEW IN MATCH{% else %}no match{% endif %}<br>
+                  resolved flag = "{% if hasFlag %}{{ flagBox[0] }}{% else %}(none){% endif %}"<br>
+                  showLowStockFlag = {{ params.showLowStockFlag }} | showNewInFlag = {{ params.showNewInFlag }}
+                </td>
+              </tr>
+              {% endif %}
 
               {# --- Flag row (always present when equalH so cards stay aligned;
                      when equalH is false we collapse to nothing). --- #}
