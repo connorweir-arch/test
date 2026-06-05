@@ -202,23 +202,35 @@
 {% set aggregateId = '6a22c969064d4e5bec3a6d64' %}
 
 {# --- 1) Resolve the aggregate to a list of product IDs.
-       Aggregates may return a list, a single value, or a
-       comma-separated string — handle all three. Dynamic key
-       access requires the [aggregates][0][key] wrap trick. --- #}
+       The aggregate uses the "distinct values" operator, so it
+       returns a LIST of product_ids (e.g. items the customer
+       bought). We also tolerate a single value or a
+       comma-separated string for safety.
+
+       IMPORTANT: do NOT coerce the IDs to a different type. The
+       list is passed straight to items_by_id() and used as reco
+       seeds, exactly as Bloomreach's own snippet does
+       (catalogs[...].items_by_id(aggregates['...'])). Forcing the
+       IDs to strings can stop them matching a catalog whose
+       product_id is numeric, which makes the lookup return
+       nothing. Dynamic key access uses the [aggregates][0][key]
+       wrap trick. --- #}
 {% set aggIdList = [] %}
 {% if aggregates is defined and aggregates is not none and [aggregates][0][aggregateId] is defined and [aggregates][0][aggregateId] is not none %}
   {% set aggRaw = [aggregates][0][aggregateId] %}
   {% if aggRaw is string %}
+    {# Single string or comma-separated string of IDs. #}
     {% for piece in aggRaw.split(',') %}
       {% set pid = piece | trim %}
       {% if pid != '' %}{% append pid to aggIdList %}{% endif %}
     {% endfor %}
   {% elif aggRaw is iterable %}
+    {# Distinct-values list — keep each ID's original type. #}
     {% for pid in aggRaw %}
-      {% if pid is not none and (pid | string | trim) != '' %}{% append (pid | string | trim) to aggIdList %}{% endif %}
+      {% if pid is not none %}{% append pid to aggIdList %}{% endif %}
     {% endfor %}
   {% else %}
-    {% append (aggRaw | string | trim) to aggIdList %}
+    {% append aggRaw to aggIdList %}
   {% endif %}
 {% endif %}
 
@@ -234,15 +246,20 @@
 
 {# --- 3) Resolve the aggregate IDs to full products (only when
        the aggregate products are toggled on). items_by_id accepts
-       up to 100 IDs per call. catalogName is dynamic, so use the
-       [catalogs][0][name] wrap trick. --- #}
+       up to 100 IDs per call. catalogName is dynamic, so resolve
+       the catalog via the [catalogs][0][name] wrap trick into its
+       own variable FIRST, then call items_by_id on it (chaining a
+       method directly onto the wrap trick is fragile). --- #}
 {% set aggItems = [] %}
 {% if params.showAggregateProducts and (aggIdList | length) > 0 and params.catalogName and params.catalogName != '' %}
-  {% set aggLookup = [catalogs][0][params.catalogName].items_by_id(aggIdList) %}
-  {% if aggLookup is defined and aggLookup is not none %}
-    {% for it in aggLookup %}
-      {% if it is not none %}{% append it to aggItems %}{% endif %}
-    {% endfor %}
+  {% set aggCatalog = [catalogs][0][params.catalogName] %}
+  {% if aggCatalog is defined and aggCatalog is not none %}
+    {% set aggLookup = aggCatalog.items_by_id(aggIdList) %}
+    {% if aggLookup is defined and aggLookup is not none %}
+      {% for it in aggLookup %}
+        {% if it is not none %}{% append it to aggItems %}{% endif %}
+      {% endfor %}
+    {% endif %}
   {% endif %}
 {% endif %}
 
@@ -332,22 +349,36 @@
 {% for item in tier4    %}{% append item to rankedReco %}{% endfor %}
 {% for item in tierRest %}{% append item to rankedReco %}{% endfor %}
 
-{# --- 7) Combine: aggregate products FIRST (in given order), then
-       the recommendation fill. De-duplicate by item_id using a
-       list + `in` test (safe, no dynamic dict membership). --- #}
-{% set seenIds  = [] %}
+{# --- 7) Combine: aggregate products FIRST (in their given,
+       already-distinct order), then the recommendation fill.
+
+       The de-dupe set is built from the aggregate IDs themselves
+       (aggIdList) rather than from item.item_id — catalog items
+       returned by items_by_id don't necessarily expose item_id
+       the same way recommendation items do, and relying on it
+       would collapse every aggregate product to one entry. IDs
+       are stringified on both sides so numeric vs string IDs
+       still compare equal.
+
+       We only de-dupe the reco fill against the aggregate IDs
+       when the aggregate products are actually shown — otherwise
+       (aggregate toggled off) the recommendations stand on their
+       own. --- #}
+{% set dedupAgainst = [] %}
+{% if params.showAggregateProducts %}
+  {% for pid in aggIdList %}
+    {% append (pid | string) to dedupAgainst %}
+  {% endfor %}
+{% endif %}
+
 {% set combined = [] %}
 {% for item in aggItems %}
-  {% set iid = item.item_id | string %}
-  {% if iid not in seenIds %}
-    {% append iid to seenIds %}
-    {% append item to combined %}
-  {% endif %}
+  {% append item to combined %}
 {% endfor %}
 {% for item in rankedReco %}
   {% set iid = item.item_id | string %}
-  {% if iid not in seenIds %}
-    {% append iid to seenIds %}
+  {% if iid not in dedupAgainst %}
+    {% append iid to dedupAgainst %}
     {% append item to combined %}
   {% endif %}
 {% endfor %}
